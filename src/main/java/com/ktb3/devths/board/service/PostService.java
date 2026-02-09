@@ -14,10 +14,12 @@ import com.ktb3.devths.board.domain.constant.PostTags;
 import com.ktb3.devths.board.domain.entity.Post;
 import com.ktb3.devths.board.domain.entity.PostTag;
 import com.ktb3.devths.board.dto.request.PostCreateRequest;
+import com.ktb3.devths.board.dto.request.PostUpdateRequest;
 import com.ktb3.devths.board.dto.response.PostCreateResponse;
 import com.ktb3.devths.board.dto.response.PostDetailResponse;
 import com.ktb3.devths.board.dto.response.PostListResponse;
 import com.ktb3.devths.board.dto.response.PostSummaryResponse;
+import com.ktb3.devths.board.dto.response.PostUpdateResponse;
 import com.ktb3.devths.board.repository.LikeRepository;
 import com.ktb3.devths.board.repository.PostRepository;
 import com.ktb3.devths.board.repository.PostTagRepository;
@@ -68,6 +70,27 @@ public class PostService {
 		linkAttachments(post.getId(), userId, request.fileIds());
 
 		return PostCreateResponse.from(post);
+	}
+
+	@Transactional
+	public PostUpdateResponse updatePost(Long userId, Long postId, PostUpdateRequest request) {
+		Post post = postRepository.findByIdAndIsDeletedFalseWithUser(postId)
+			.orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+
+		if (!post.getUser().getId().equals(userId)) {
+			throw new CustomException(ErrorCode.POST_ACCESS_DENIED);
+		}
+
+		post.updateTitle(request.title());
+		post.updateContent(request.content());
+
+		postTagRepository.deleteAllByPostId(postId);
+		saveTags(post, request.tags());
+
+		unlinkExistingAttachments(postId);
+		linkAttachments(postId, userId, request.fileIds());
+
+		return PostUpdateResponse.from(post);
 	}
 
 	@Transactional(readOnly = true)
@@ -178,6 +201,15 @@ public class PostService {
 			.toList();
 
 		postTagRepository.saveAll(postTags);
+	}
+
+	private void unlinkExistingAttachments(Long postId) {
+		List<S3Attachment> existing = s3AttachmentRepository
+			.findByRefTypeAndRefIdAndIsDeletedFalseOrderBySortOrderAsc(RefType.POST, postId);
+
+		for (S3Attachment attachment : existing) {
+			attachment.updateRefId(null);
+		}
 	}
 
 	private void linkAttachments(Long postId, Long userId, List<Long> fileIds) {

@@ -38,6 +38,7 @@ public enum ErrorCode {
 	GOOGLE_CALENDAR_ACCESS_DENIED(HttpStatus.FORBIDDEN, "Google Calendar 접근 권한이 없습니다"),
 	GOOGLE_TASKS_ACCESS_DENIED(HttpStatus.FORBIDDEN, "Google Tasks 접근 권한이 없습니다"),
 	EVENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 일정에 접근 권한이 없습니다"),
+	POST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 게시글에 접근 권한이 없습니다"),
 
 	// 404 Not Found
 	RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다"),

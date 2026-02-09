@@ -6,21 +6,23 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ktb3.devths.board.dto.request.PostCreateRequest;
+import com.ktb3.devths.board.dto.request.PostUpdateRequest;
 import com.ktb3.devths.board.dto.response.PostCreateResponse;
 import com.ktb3.devths.board.dto.response.PostDetailResponse;
 import com.ktb3.devths.board.dto.response.PostListResponse;
+import com.ktb3.devths.board.dto.response.PostUpdateResponse;
 import com.ktb3.devths.board.service.PostService;
 import com.ktb3.devths.global.response.ApiResponse;
 import com.ktb3.devths.global.security.UserPrincipal;
 
 import jakarta.validation.Valid;
-
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -30,6 +32,7 @@ public class PostController {
 
 	private final PostService postService;
 
+	@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201")
 	@PostMapping
 	public ResponseEntity<ApiResponse<PostCreateResponse>> createPost(
 		@AuthenticationPrincipal UserPrincipal userPrincipal,
@@ -39,6 +42,19 @@ public class PostController {
 
 		return ResponseEntity.status(HttpStatus.CREATED).body(
 			ApiResponse.success("게시글이 성공적으로 등록되었습니다.", response)
+		);
+	}
+
+	@PutMapping("/{postId}")
+	public ResponseEntity<ApiResponse<PostUpdateResponse>> updatePost(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@PathVariable Long postId,
+		@Valid @RequestBody PostUpdateRequest request
+	) {
+		PostUpdateResponse response = postService.updatePost(userPrincipal.getUserId(), postId, request);
+
+		return ResponseEntity.ok(
+			ApiResponse.success("게시글이 성공적으로 수정되었습니다.", response)
 		);
 	}
 
