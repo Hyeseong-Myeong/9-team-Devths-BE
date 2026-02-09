@@ -13,8 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ktb3.devths.board.domain.entity.Comment;
 import com.ktb3.devths.board.domain.entity.Post;
 import com.ktb3.devths.board.dto.request.CommentCreateRequest;
+import com.ktb3.devths.board.dto.request.CommentUpdateRequest;
 import com.ktb3.devths.board.dto.response.CommentCreateResponse;
 import com.ktb3.devths.board.dto.response.CommentListResponse;
+import com.ktb3.devths.board.dto.response.CommentUpdateResponse;
 import com.ktb3.devths.board.repository.CommentRepository;
 import com.ktb3.devths.board.repository.PostRepository;
 import com.ktb3.devths.global.exception.CustomException;
@@ -61,6 +63,25 @@ public class CommentService {
 		post.incrementCommentCount();
 
 		return CommentCreateResponse.from(comment);
+	}
+
+	@Transactional
+	public CommentUpdateResponse updateComment(Long userId, Long postId, Long commentId,
+		CommentUpdateRequest request) {
+		Comment comment = commentRepository.findByIdAndIsDeletedFalseWithUser(commentId)
+			.orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
+
+		if (!comment.getPost().getId().equals(postId)) {
+			throw new CustomException(ErrorCode.COMMENT_NOT_FOUND);
+		}
+
+		if (!comment.getUser().getId().equals(userId)) {
+			throw new CustomException(ErrorCode.COMMENT_ACCESS_DENIED);
+		}
+
+		comment.updateContent(request.content());
+
+		return CommentUpdateResponse.from(comment);
 	}
 
 	@Transactional(readOnly = true)

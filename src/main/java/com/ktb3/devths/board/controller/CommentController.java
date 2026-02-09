@@ -6,14 +6,17 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ktb3.devths.board.dto.request.CommentCreateRequest;
+import com.ktb3.devths.board.dto.request.CommentUpdateRequest;
 import com.ktb3.devths.board.dto.response.CommentCreateResponse;
 import com.ktb3.devths.board.dto.response.CommentListResponse;
+import com.ktb3.devths.board.dto.response.CommentUpdateResponse;
 import com.ktb3.devths.board.service.CommentService;
 import com.ktb3.devths.global.response.ApiResponse;
 import com.ktb3.devths.global.security.UserPrincipal;
@@ -40,6 +43,21 @@ public class CommentController {
 
 		return ResponseEntity.status(HttpStatus.CREATED).body(
 			ApiResponse.success("댓글이 성공적으로 등록되었습니다.", response)
+		);
+	}
+
+	@PutMapping("/{commentId}")
+	public ResponseEntity<ApiResponse<CommentUpdateResponse>> updateComment(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@PathVariable Long postId,
+		@PathVariable Long commentId,
+		@Valid @RequestBody CommentUpdateRequest request
+	) {
+		CommentUpdateResponse response = commentService.updateComment(
+			userPrincipal.getUserId(), postId, commentId, request);
+
+		return ResponseEntity.ok(
+			ApiResponse.success("댓글이 성공적으로 수정되었습니다.", response)
 		);
 	}
 
