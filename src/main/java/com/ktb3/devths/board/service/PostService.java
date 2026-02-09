@@ -206,6 +206,22 @@ public class PostService {
 		return PostLikeResponse.from(post);
 	}
 
+	@Transactional
+	public void unlikePost(Long userId, Long postId) {
+		Post post = postRepository.findByIdAndIsDeletedFalseForUpdate(postId)
+			.orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+
+		Like like = likeRepository.findByPostIdAndUserId(postId, userId)
+			.orElse(null);
+
+		if (like == null) {
+			return;
+		}
+
+		likeRepository.delete(like);
+		post.decrementLikeCount();
+	}
+
 	private List<Post> fetchPosts(String keyword, boolean hasKeyword, Long lastId, Pageable pageable) {
 		if (hasKeyword && lastId != null) {
 			return postRepository.findPostsByKeywordNotDeletedAfterCursor(keyword, lastId, pageable);

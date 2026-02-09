@@ -106,4 +106,14 @@ public class PostController {
 			ApiResponse.success("해당 게시글에 좋아요를 눌렀습니다.", response)
 		);
 	}
+
+	@DeleteMapping("/{postId}/likes")
+	@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204")
+	public ResponseEntity<Void> unlikePost(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@PathVariable Long postId
+	) {
+		postService.unlikePost(userPrincipal.getUserId(), postId);
+		return ResponseEntity.noContent().build();
+	}
 }

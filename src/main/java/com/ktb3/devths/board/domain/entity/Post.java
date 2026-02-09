@@ -82,6 +82,14 @@ public class Post {
 		this.likeCount++;
 	}
 
+	public void decrementLikeCount() {
+		if (this.likeCount == null || this.likeCount <= 0) {
+			this.likeCount = 0;
+			return;
+		}
+		this.likeCount--;
+	}
+
 	public void delete() {
 		this.isDeleted = true;
 		this.deletedAt = LocalDateTime.now();
