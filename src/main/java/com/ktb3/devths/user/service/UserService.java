@@ -6,12 +6,16 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ktb3.devths.auth.dto.internal.TokenPair;
 import com.ktb3.devths.auth.service.JwtTokenService;
 import com.ktb3.devths.auth.service.TokenEncryptionService;
+import com.ktb3.devths.board.domain.entity.Post;
+import com.ktb3.devths.board.repository.PostRepository;
 import com.ktb3.devths.global.exception.CustomException;
 import com.ktb3.devths.global.response.ErrorCode;
 import com.ktb3.devths.global.security.jwt.JwtTokenProvider;
@@ -28,7 +32,9 @@ import com.ktb3.devths.user.domain.entity.UserInterest;
 import com.ktb3.devths.user.dto.internal.UserSignupResult;
 import com.ktb3.devths.user.dto.request.UserSignupRequest;
 import com.ktb3.devths.user.dto.request.UserUpdateRequest;
+import com.ktb3.devths.user.dto.response.MyPostListResponse;
 import com.ktb3.devths.user.dto.response.UserMeResponse;
+import com.ktb3.devths.user.dto.response.UserProfileResponse;
 import com.ktb3.devths.user.dto.response.UserSignupResponse;
 import com.ktb3.devths.user.dto.response.UserUpdateResponse;
 import com.ktb3.devths.user.repository.SocialAccountRepository;
@@ -44,6 +50,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class UserService {
 	private static final String PROVIDER_GOOGLE = "GOOGLE";
+	private static final int DEFAULT_MY_POST_PAGE_SIZE = 5;
+	private static final int MAX_MY_POST_PAGE_SIZE = 100;
 
 	private final UserRepository userRepository;
 	private final SocialAccountRepository socialAccountRepository;
@@ -55,6 +63,7 @@ public class UserService {
 	private final TokenEncryptionService tokenEncryptionService;
 	private final S3AttachmentRepository s3AttachmentRepository;
 	private final S3StorageService s3StorageService;
+	private final PostRepository postRepository;
 
 	@Transactional
 	public UserSignupResult signup(UserSignupRequest request) {
@@ -239,6 +248,46 @@ public class UserService {
 		userTokenRepository.deleteByUserId(userId);           // Refresh Token 삭제
 
 		user.withdraw();
+	}
+
+	@Transactional(readOnly = true)
+	public MyPostListResponse getMyPosts(Long userId, Integer size, Long lastId) {
+		int pageSize = (size == null || size <= 0)
+			? DEFAULT_MY_POST_PAGE_SIZE
+			: Math.min(size, MAX_MY_POST_PAGE_SIZE);
+		Pageable pageable = PageRequest.of(0, pageSize + 1);
+
+		List<Post> posts = (lastId == null)
+			? postRepository.findMyPostsNotDeleted(userId, pageable)
+			: postRepository.findMyPostsNotDeletedAfterCursor(userId, lastId, pageable);
+
+		return MyPostListResponse.of(posts, pageSize);
+	}
+
+	@Transactional(readOnly = true)
+	public UserProfileResponse getUserProfile(Long requesterId, Long targetUserId) { //requesterId -> 추후 isFollowing 계산 시 필요
+		User user = userRepository.findByIdAndIsWithdrawFalse(targetUserId)
+			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+		List<String> interests = userInterestRepository.findInterestsByUserId(targetUserId).stream()
+			.map(Interests::getDisplayName)
+			.toList();
+
+		UserSignupResponse.ProfileImage profileImage = s3AttachmentRepository
+			.findTopByRefTypeAndRefIdAndIsDeletedFalseOrderByCreatedAtDesc(RefType.USER, targetUserId)
+			.map(attachment -> new UserSignupResponse.ProfileImage(
+				attachment.getId(),
+				s3StorageService.getPublicUrl(attachment.getS3Key())
+			))
+			.orElse(null);
+
+		return UserProfileResponse.of(
+			user.getId(),
+			user.getNickname(),
+			profileImage,
+			interests,
+			false
+		);
 	}
 
 	private Interests parseInterest(String value) {

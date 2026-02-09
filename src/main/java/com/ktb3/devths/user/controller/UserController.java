@@ -5,10 +5,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ktb3.devths.auth.util.CookieUtil;
@@ -17,7 +19,9 @@ import com.ktb3.devths.global.security.UserPrincipal;
 import com.ktb3.devths.user.dto.internal.UserSignupResult;
 import com.ktb3.devths.user.dto.request.UserSignupRequest;
 import com.ktb3.devths.user.dto.request.UserUpdateRequest;
+import com.ktb3.devths.user.dto.response.MyPostListResponse;
 import com.ktb3.devths.user.dto.response.UserMeResponse;
+import com.ktb3.devths.user.dto.response.UserProfileResponse;
 import com.ktb3.devths.user.dto.response.UserSignupResponse;
 import com.ktb3.devths.user.dto.response.UserUpdateResponse;
 import com.ktb3.devths.user.service.UserService;
@@ -67,6 +71,31 @@ public class UserController {
 
 		return ResponseEntity.ok(
 			ApiResponse.success("내 정보가 성공적으로 수정되었습니다.", response)
+		);
+	}
+
+	@GetMapping("/me/posts")
+	public ResponseEntity<ApiResponse<MyPostListResponse>> getMyPosts(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@RequestParam(required = false) Integer size,
+		@RequestParam(required = false) Long lastId
+	) {
+		MyPostListResponse response = userService.getMyPosts(userPrincipal.getUserId(), size, lastId);
+
+		return ResponseEntity.ok(
+			ApiResponse.success("내가 작성한 게시글 목록을 성공적으로 조회하였습니다.", response)
+		);
+	}
+
+	@GetMapping("/{userId}")
+	public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfile(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@PathVariable Long userId
+	) {
+		UserProfileResponse response = userService.getUserProfile(userPrincipal.getUserId(), userId);
+
+		return ResponseEntity.ok(
+			ApiResponse.success("회원의 프로필을 성공적으로 조회하였습니다.", response)
 		);
 	}
 

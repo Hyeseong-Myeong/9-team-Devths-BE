@@ -1,19 +1,16 @@
-package com.ktb3.devths.global.storage.domain.entity;
+package com.ktb3.devths.board.domain.entity;
 
 import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.ktb3.devths.global.storage.domain.constant.FileCategory;
-import com.ktb3.devths.global.storage.domain.constant.RefType;
 import com.ktb3.devths.user.domain.entity.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -32,45 +29,40 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "s3_attachments")
-public class S3Attachment {
+@Table(name = "posts")
+public class Post {
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	@Column(name = "id")
+	Long id;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id")
+	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
 
-	@Column(name = "original_name", nullable = false)
-	private String originalName;
+	@Column(name = "title", nullable = false)
+	private String title;
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "ref_type", nullable = false)
-	private RefType refType;
+	@Column(name = "content", columnDefinition = "TEXT")
+	private String content;
 
-	@Column(name = "ref_id", nullable = true)
-	private Long refId;
+	@Column(name = "like_count", nullable = false)
+	private Integer likeCount = 0;
 
-	@Column(name = "s3_key", nullable = false)
-	private String s3Key;
+	@Column(name = "comment_count", nullable = false)
+	private Integer commentCount = 0;
 
-	@Column(name = "mime_type", nullable = false)
-	private String mimeType;
-
-	@Enumerated(EnumType.STRING)
-	@Column(name = "category", nullable = true)
-	private FileCategory category;
-
-	@Column(name = "file_size", nullable = false)
-	private Long fileSize;
-
-	@Column(name = "sort_order", nullable = false)
-	private int sortOrder = 0;
+	@Column(name = "share_count", nullable = false)
+	private Integer shareCount = 0;
 
 	@Column(name = "created_at", nullable = false)
 	@CreatedDate
 	private LocalDateTime createdAt;
+
+	@Column(name = "updated_at", nullable = false)
+	@LastModifiedDate
+	private LocalDateTime updatedAt;
 
 	@Column(name = "is_deleted", nullable = false)
 	private boolean isDeleted = false;
@@ -78,11 +70,27 @@ public class S3Attachment {
 	@Column(name = "deleted_at", nullable = true)
 	private LocalDateTime deletedAt;
 
-	public void updateRefId(Long refId) {
-		this.refId = refId;
+	public void updateTitle(String title) {
+		this.title = title;
 	}
 
-	public void softDelete() {
+	public void updateContent(String content) {
+		this.content = content;
+	}
+
+	public void incrementLikeCount() {
+		this.likeCount++;
+	}
+
+	public void decrementLikeCount() {
+		if (this.likeCount == null || this.likeCount <= 0) {
+			this.likeCount = 0;
+			return;
+		}
+		this.likeCount--;
+	}
+
+	public void delete() {
 		this.isDeleted = true;
 		this.deletedAt = LocalDateTime.now();
 	}
