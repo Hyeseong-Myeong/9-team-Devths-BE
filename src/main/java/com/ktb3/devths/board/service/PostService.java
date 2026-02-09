@@ -10,8 +10,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ktb3.devths.board.domain.constant.PostTags;
 import com.ktb3.devths.board.domain.entity.Post;
 import com.ktb3.devths.board.domain.entity.PostTag;
+import com.ktb3.devths.board.dto.request.PostCreateRequest;
+import com.ktb3.devths.board.dto.response.PostCreateResponse;
 import com.ktb3.devths.board.dto.response.PostDetailResponse;
 import com.ktb3.devths.board.dto.response.PostListResponse;
 import com.ktb3.devths.board.dto.response.PostSummaryResponse;
@@ -29,6 +32,7 @@ import com.ktb3.devths.user.domain.constant.Interests;
 import com.ktb3.devths.user.domain.entity.User;
 import com.ktb3.devths.user.domain.entity.UserInterest;
 import com.ktb3.devths.user.repository.UserInterestRepository;
+import com.ktb3.devths.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,9 +48,27 @@ public class PostService {
 	private final PostRepository postRepository;
 	private final PostTagRepository postTagRepository;
 	private final LikeRepository likeRepository;
+	private final UserRepository userRepository;
 	private final UserInterestRepository userInterestRepository;
 	private final S3AttachmentRepository s3AttachmentRepository;
 	private final S3StorageService s3StorageService;
+
+	@Transactional
+	public PostCreateResponse createPost(Long userId, PostCreateRequest request) {
+		User user = userRepository.findByIdAndIsWithdrawFalse(userId)
+			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+		Post post = postRepository.save(Post.builder()
+			.user(user)
+			.title(request.title())
+			.content(request.content())
+			.build());
+
+		saveTags(post, request.tags());
+		linkAttachments(post.getId(), userId, request.fileIds());
+
+		return PostCreateResponse.from(post);
+	}
 
 	@Transactional(readOnly = true)
 	public PostListResponse getPostList(Integer size, Long lastId, String tag) {
@@ -134,6 +156,47 @@ public class PostService {
 			return postRepository.findPostsNotDeletedAfterCursor(lastId, pageable);
 		}
 		return postRepository.findPostsNotDeleted(pageable);
+	}
+
+	private void saveTags(Post post, List<String> tags) {
+		if (tags == null || tags.isEmpty()) {
+			return;
+		}
+
+		List<PostTag> postTags = tags.stream()
+			.distinct()
+			.map(displayName -> {
+				PostTags tag = PostTags.fromDisplayName(displayName);
+				if (tag == null) {
+					throw new CustomException(ErrorCode.INVALID_INPUT);
+				}
+				return PostTag.builder()
+					.post(post)
+					.tagName(tag)
+					.build();
+			})
+			.toList();
+
+		postTagRepository.saveAll(postTags);
+	}
+
+	private void linkAttachments(Long postId, Long userId, List<Long> fileIds) {
+		if (fileIds == null || fileIds.isEmpty()) {
+			return;
+		}
+
+		List<S3Attachment> attachments = s3AttachmentRepository.findByIdInAndIsDeletedFalse(fileIds);
+
+		if (attachments.size() != fileIds.size()) {
+			throw new CustomException(ErrorCode.INVALID_FILE_REFERENCE);
+		}
+
+		for (S3Attachment attachment : attachments) {
+			if (!attachment.getUser().getId().equals(userId)) {
+				throw new CustomException(ErrorCode.INVALID_FILE_REFERENCE);
+			}
+			attachment.updateRefId(postId);
+		}
 	}
 
 	private Map<Long, S3Attachment> buildProfileImageMap(List<Long> userIds) {

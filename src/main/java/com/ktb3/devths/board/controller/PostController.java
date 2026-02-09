@@ -1,18 +1,25 @@
 package com.ktb3.devths.board.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ktb3.devths.board.dto.request.PostCreateRequest;
+import com.ktb3.devths.board.dto.response.PostCreateResponse;
 import com.ktb3.devths.board.dto.response.PostDetailResponse;
 import com.ktb3.devths.board.dto.response.PostListResponse;
 import com.ktb3.devths.board.service.PostService;
 import com.ktb3.devths.global.response.ApiResponse;
 import com.ktb3.devths.global.security.UserPrincipal;
+
+import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +29,18 @@ import lombok.RequiredArgsConstructor;
 public class PostController {
 
 	private final PostService postService;
+
+	@PostMapping
+	public ResponseEntity<ApiResponse<PostCreateResponse>> createPost(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@Valid @RequestBody PostCreateRequest request
+	) {
+		PostCreateResponse response = postService.createPost(userPrincipal.getUserId(), request);
+
+		return ResponseEntity.status(HttpStatus.CREATED).body(
+			ApiResponse.success("게시글이 성공적으로 등록되었습니다.", response)
+		);
+	}
 
 	@GetMapping
 	public ResponseEntity<ApiResponse<PostListResponse>> getPosts(
