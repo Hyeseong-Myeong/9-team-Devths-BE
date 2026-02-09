@@ -12,11 +12,8 @@ import lombok.RequiredArgsConstructor;
 public class DocumentAnalysisFacade {
 
 	private final DocumentAnalysisService documentAnalysisService;
-	private final AsyncAnalysisProcessor asyncAnalysisProcessor;
 
 	public DocumentAnalysisResponse startAnalysis(Long userId, Long roomId, DocumentAnalysisRequest request) {
-		DocumentAnalysisResponse response = documentAnalysisService.startAnalysis(userId, roomId, request);
-		asyncAnalysisProcessor.processAnalysis(response.taskId(), userId, roomId, request);
-		return response;
+		return documentAnalysisService.startAnalysis(userId, roomId, request);
 	}
 }

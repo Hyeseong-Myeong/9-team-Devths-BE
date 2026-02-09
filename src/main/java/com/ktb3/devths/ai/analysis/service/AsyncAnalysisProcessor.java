@@ -6,11 +6,15 @@ import java.util.Map;
 
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import com.ktb3.devths.ai.analysis.dto.request.DocumentAnalysisRequest;
 import com.ktb3.devths.ai.analysis.dto.request.FastApiAnalysisRequest;
 import com.ktb3.devths.ai.analysis.dto.response.FastApiAnalysisResponse;
 import com.ktb3.devths.ai.analysis.dto.response.FastApiTaskStatusResponse;
+import com.ktb3.devths.ai.analysis.event.AnalysisEventPublisher;
+import com.ktb3.devths.ai.analysis.event.AnalysisRequestedEvent;
 import com.ktb3.devths.ai.chatbot.domain.entity.AiChatMessage;
 import com.ktb3.devths.ai.chatbot.domain.entity.AiChatRoom;
 import com.ktb3.devths.ai.chatbot.repository.AiChatRoomRepository;
@@ -25,7 +29,6 @@ import com.ktb3.devths.global.storage.domain.entity.S3Attachment;
 import com.ktb3.devths.global.storage.repository.S3AttachmentRepository;
 import com.ktb3.devths.global.storage.service.S3StorageService;
 import com.ktb3.devths.global.util.LogSanitizer;
-import com.ktb3.devths.notification.service.NotificationService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,10 +46,16 @@ public class AsyncAnalysisProcessor {
 	private final S3AttachmentRepository s3AttachmentRepository;
 	private final AiOcrResultService aiOcrResultService;
 	private final S3StorageService s3StorageService;
-	private final NotificationService notificationService;
+	private final AnalysisEventPublisher analysisEventPublisher;
 
 	@Async("taskExecutor")
-	public void processAnalysis(Long taskId, Long userId, Long roomId, DocumentAnalysisRequest request) {
+	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+	public void handleAnalysisRequested(AnalysisRequestedEvent event) {
+		Long taskId = event.taskId();
+		Long userId = event.userId();
+		Long roomId = event.roomId();
+		DocumentAnalysisRequest request = event.request();
+
 		try {
 			String threadName = Thread.currentThread().getName();
 			log.info("비동기 분석 처리 시작: taskId={}, roomId={}, thread={}", taskId, roomId, threadName);
@@ -65,10 +74,14 @@ public class AsyncAnalysisProcessor {
 
 			// 5. 성공/실패 처리 (독립 트랜잭션)
 			if ("completed".equalsIgnoreCase(statusResponse.status())) {
-				handleAnalysisSuccess(taskId, roomId, statusResponse);
+				String summary = handleAnalysisSuccess(taskId, roomId, statusResponse);
+				Map<String, Object> metadata = new HashMap<>();
+				metadata.put("fastApiTaskId", statusResponse.taskId());
+				analysisEventPublisher.publishCompleted(taskId, userId, roomId, summary, metadata);
 			} else {
-				handleAnalysisFailure(taskId, "FastAPI에서 분석이 완료되지 않았습니다: "
-					+ LogSanitizer.sanitize(statusResponse.status()));
+				String reason = "FastAPI에서 분석이 완료되지 않았습니다: "
+					+ LogSanitizer.sanitize(statusResponse.status());
+				handleAnalysisFailure(taskId, reason);
 			}
 
 		} catch (CustomException e) {
@@ -76,7 +89,8 @@ public class AsyncAnalysisProcessor {
 			handleAnalysisFailure(taskId, e.getErrorCode().getMessage());
 		} catch (Exception e) {
 			log.error("분석 처리 중 예상치 못한 오류 발생: taskId={}", taskId, e);
-			handleAnalysisFailure(taskId, "분석 처리 중 오류가 발생했습니다");
+			String reason = "분석 처리 중 오류가 발생했습니다";
+			handleAnalysisFailure(taskId, reason);
 		}
 	}
 
@@ -168,7 +182,7 @@ public class AsyncAnalysisProcessor {
 		throw new CustomException(ErrorCode.FASTAPI_TIMEOUT);
 	}
 
-	protected void handleAnalysisSuccess(Long taskId, Long roomId, FastApiTaskStatusResponse statusResponse) {
+	protected String handleAnalysisSuccess(Long taskId, Long roomId, FastApiTaskStatusResponse statusResponse) {
 		try {
 			AiChatRoom chatRoom = aiChatRoomRepository.findByIdAndIsDeletedFalse(roomId)
 				.orElse(null);
@@ -177,9 +191,10 @@ public class AsyncAnalysisProcessor {
 				log.warn("채팅방이 삭제되었습니다. 메시지 저장을 건너뜁니다: roomId={}", roomId);
 				Map<String, Object> result = new HashMap<>();
 				result.put("fastApiTaskId", statusResponse.taskId());
-				result.put("summary", "채팅방이 삭제되어 결과를 저장할 수 없습니다");
+				String summary = "채팅방이 삭제되어 결과를 저장할 수 없습니다";
+				result.put("summary", summary);
 				asyncTaskService.updateResult(taskId, result);
-				return;
+				return summary;
 			}
 
 			String summary = extractSummary(statusResponse.result());
@@ -208,18 +223,8 @@ public class AsyncAnalysisProcessor {
 
 			asyncTaskService.updateResult(taskId, result);
 
-			// 알림 생성
-			try {
-				notificationService.createAnalysisCompleteNotification(
-					chatRoom.getUser(),
-					roomId,
-					summary
-				);
-			} catch (Exception e) {
-				log.warn("알림 생성 실패 (분석 결과는 정상 저장됨): roomId={}", roomId, e);
-			}
-
 			log.info("분석 완료 및 결과 저장 성공: taskId={}, messageId={}", taskId, message.getId());
+			return summary;
 
 		} catch (Exception e) {
 			log.error("분석 성공 처리 중 오류 발생: taskId={}", taskId, e);

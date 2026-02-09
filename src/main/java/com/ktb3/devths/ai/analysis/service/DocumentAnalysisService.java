@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ktb3.devths.ai.analysis.dto.request.DocumentAnalysisRequest;
 import com.ktb3.devths.ai.analysis.dto.response.DocumentAnalysisResponse;
+import com.ktb3.devths.ai.analysis.event.AnalysisEventPublisher;
 import com.ktb3.devths.ai.chatbot.domain.entity.AiChatRoom;
 import com.ktb3.devths.ai.chatbot.repository.AiChatRoomRepository;
 import com.ktb3.devths.async.domain.constant.TaskStatus;
@@ -31,6 +32,7 @@ public class DocumentAnalysisService {
 	private final AiChatRoomRepository aiChatRoomRepository;
 	private final AsyncTaskRepository asyncTaskRepository;
 	private final AsyncTaskService asyncTaskService;
+	private final AnalysisEventPublisher analysisEventPublisher;
 
 	@Transactional
 	public DocumentAnalysisResponse startAnalysis(Long userId, Long roomId,
@@ -65,6 +67,7 @@ public class DocumentAnalysisService {
 		}
 
 		AsyncTask task = asyncTaskService.createTask(user, TaskType.ANALYSIS, roomId);
+		analysisEventPublisher.publishRequested(task.getId(), userId, roomId, request);
 
 		return new DocumentAnalysisResponse(task.getId(), TaskStatus.PENDING.name());
 	}
