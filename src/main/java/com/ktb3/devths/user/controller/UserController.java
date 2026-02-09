@@ -19,6 +19,7 @@ import com.ktb3.devths.global.security.UserPrincipal;
 import com.ktb3.devths.user.dto.internal.UserSignupResult;
 import com.ktb3.devths.user.dto.request.UserSignupRequest;
 import com.ktb3.devths.user.dto.request.UserUpdateRequest;
+import com.ktb3.devths.user.dto.response.MyCommentListResponse;
 import com.ktb3.devths.user.dto.response.MyPostListResponse;
 import com.ktb3.devths.user.dto.response.UserMeResponse;
 import com.ktb3.devths.user.dto.response.UserProfileResponse;
@@ -84,6 +85,19 @@ public class UserController {
 
 		return ResponseEntity.ok(
 			ApiResponse.success("내가 작성한 게시글 목록을 성공적으로 조회하였습니다.", response)
+		);
+	}
+
+	@GetMapping("/me/comments")
+	public ResponseEntity<ApiResponse<MyCommentListResponse>> getMyComments(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@RequestParam(required = false) Integer size,
+		@RequestParam(required = false) Long lastId
+	) {
+		MyCommentListResponse response = userService.getMyComments(userPrincipal.getUserId(), size, lastId);
+
+		return ResponseEntity.ok(
+			ApiResponse.success("내가 작성한 댓글 목록을 성공적으로 조회하였습니다.", response)
 		);
 	}
 

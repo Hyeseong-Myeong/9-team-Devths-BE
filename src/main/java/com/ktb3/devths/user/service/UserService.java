@@ -14,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ktb3.devths.auth.dto.internal.TokenPair;
 import com.ktb3.devths.auth.service.JwtTokenService;
 import com.ktb3.devths.auth.service.TokenEncryptionService;
+import com.ktb3.devths.board.domain.entity.Comment;
 import com.ktb3.devths.board.domain.entity.Post;
+import com.ktb3.devths.board.repository.CommentRepository;
 import com.ktb3.devths.board.repository.PostRepository;
 import com.ktb3.devths.global.exception.CustomException;
 import com.ktb3.devths.global.response.ErrorCode;
@@ -32,6 +34,7 @@ import com.ktb3.devths.user.domain.entity.UserInterest;
 import com.ktb3.devths.user.dto.internal.UserSignupResult;
 import com.ktb3.devths.user.dto.request.UserSignupRequest;
 import com.ktb3.devths.user.dto.request.UserUpdateRequest;
+import com.ktb3.devths.user.dto.response.MyCommentListResponse;
 import com.ktb3.devths.user.dto.response.MyPostListResponse;
 import com.ktb3.devths.user.dto.response.UserMeResponse;
 import com.ktb3.devths.user.dto.response.UserProfileResponse;
@@ -52,6 +55,8 @@ public class UserService {
 	private static final String PROVIDER_GOOGLE = "GOOGLE";
 	private static final int DEFAULT_MY_POST_PAGE_SIZE = 5;
 	private static final int MAX_MY_POST_PAGE_SIZE = 100;
+	private static final int DEFAULT_MY_COMMENT_PAGE_SIZE = 5;
+	private static final int MAX_MY_COMMENT_PAGE_SIZE = 100;
 
 	private final UserRepository userRepository;
 	private final SocialAccountRepository socialAccountRepository;
@@ -63,6 +68,7 @@ public class UserService {
 	private final TokenEncryptionService tokenEncryptionService;
 	private final S3AttachmentRepository s3AttachmentRepository;
 	private final S3StorageService s3StorageService;
+	private final CommentRepository commentRepository;
 	private final PostRepository postRepository;
 
 	@Transactional
@@ -262,6 +268,20 @@ public class UserService {
 			: postRepository.findMyPostsNotDeletedAfterCursor(userId, lastId, pageable);
 
 		return MyPostListResponse.of(posts, pageSize);
+	}
+
+	@Transactional(readOnly = true)
+	public MyCommentListResponse getMyComments(Long userId, Integer size, Long lastId) {
+		int pageSize = (size == null || size <= 0)
+			? DEFAULT_MY_COMMENT_PAGE_SIZE
+			: Math.min(size, MAX_MY_COMMENT_PAGE_SIZE);
+		Pageable pageable = PageRequest.of(0, pageSize + 1);
+
+		List<Comment> comments = (lastId == null)
+			? commentRepository.findMyCommentsNotDeleted(userId, pageable)
+			: commentRepository.findMyCommentsNotDeletedAfterCursor(userId, lastId, pageable);
+
+		return MyCommentListResponse.of(comments, pageSize);
 	}
 
 	@Transactional(readOnly = true)

@@ -82,6 +82,18 @@ public class Post {
 		this.likeCount++;
 	}
 
+	public void incrementCommentCount() {
+		this.commentCount++;
+	}
+
+	public void decrementCommentCount() {
+		if (this.commentCount == null || this.commentCount <= 0) {
+			this.commentCount = 0;
+			return;
+		}
+		this.commentCount--;
+	}
+
 	public void decrementLikeCount() {
 		if (this.likeCount == null || this.likeCount <= 0) {
 			this.likeCount = 0;
