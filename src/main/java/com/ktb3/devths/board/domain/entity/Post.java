@@ -78,6 +78,10 @@ public class Post {
 		this.content = content;
 	}
 
+	public void incrementLikeCount() {
+		this.likeCount++;
+	}
+
 	public void delete() {
 		this.isDeleted = true;
 		this.deletedAt = LocalDateTime.now();

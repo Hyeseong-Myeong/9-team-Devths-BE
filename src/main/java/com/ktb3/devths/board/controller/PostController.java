@@ -17,6 +17,7 @@ import com.ktb3.devths.board.dto.request.PostCreateRequest;
 import com.ktb3.devths.board.dto.request.PostUpdateRequest;
 import com.ktb3.devths.board.dto.response.PostCreateResponse;
 import com.ktb3.devths.board.dto.response.PostDetailResponse;
+import com.ktb3.devths.board.dto.response.PostLikeResponse;
 import com.ktb3.devths.board.dto.response.PostListResponse;
 import com.ktb3.devths.board.dto.response.PostUpdateResponse;
 import com.ktb3.devths.board.service.PostService;
@@ -93,5 +94,16 @@ public class PostController {
 	) {
 		postService.deletePost(userPrincipal.getUserId(), postId);
 		return ResponseEntity.noContent().build();
+	}
+
+	@PostMapping("/{postId}/likes")
+	public ResponseEntity<ApiResponse<PostLikeResponse>> likePost(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@PathVariable Long postId
+	) {
+		PostLikeResponse response = postService.likePost(userPrincipal.getUserId(), postId);
+		return ResponseEntity.ok(
+			ApiResponse.success("해당 게시글에 좋아요를 눌렀습니다.", response)
+		);
 	}
 }

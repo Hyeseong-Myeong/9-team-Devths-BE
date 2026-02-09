@@ -11,12 +11,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ktb3.devths.board.domain.constant.PostTags;
+import com.ktb3.devths.board.domain.entity.Like;
 import com.ktb3.devths.board.domain.entity.Post;
 import com.ktb3.devths.board.domain.entity.PostTag;
 import com.ktb3.devths.board.dto.request.PostCreateRequest;
 import com.ktb3.devths.board.dto.request.PostUpdateRequest;
 import com.ktb3.devths.board.dto.response.PostCreateResponse;
 import com.ktb3.devths.board.dto.response.PostDetailResponse;
+import com.ktb3.devths.board.dto.response.PostLikeResponse;
 import com.ktb3.devths.board.dto.response.PostListResponse;
 import com.ktb3.devths.board.dto.response.PostSummaryResponse;
 import com.ktb3.devths.board.dto.response.PostUpdateResponse;
@@ -178,6 +180,30 @@ public class PostService {
 		}
 
 		post.delete();
+	}
+
+	@Transactional
+	public PostLikeResponse likePost(Long userId, Long postId) {
+		Post post = postRepository.findByIdAndIsDeletedFalseForUpdate(postId)
+			.orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+
+		boolean alreadyLiked = likeRepository.existsByPostIdAndUserId(postId, userId);
+		if (alreadyLiked) {
+			return PostLikeResponse.from(post);
+		}
+
+		User user = userRepository.findByIdAndIsWithdrawFalse(userId)
+			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+		Like like = Like.builder()
+			.post(post)
+			.user(user)
+			.build();
+
+		likeRepository.save(like);
+		post.incrementLikeCount();
+
+		return PostLikeResponse.from(post);
 	}
 
 	private List<Post> fetchPosts(String keyword, boolean hasKeyword, Long lastId, Pageable pageable) {
