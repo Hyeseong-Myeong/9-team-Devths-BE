@@ -84,6 +84,26 @@ public class CommentService {
 		return CommentUpdateResponse.from(comment);
 	}
 
+	@Transactional
+	public void deleteComment(Long userId, Long postId, Long commentId) {
+		Comment comment = commentRepository.findByIdAndIsDeletedFalseWithUser(commentId)
+			.orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
+
+		if (!comment.getPost().getId().equals(postId)) {
+			throw new CustomException(ErrorCode.COMMENT_NOT_FOUND);
+		}
+
+		if (!comment.getUser().getId().equals(userId)) {
+			throw new CustomException(ErrorCode.COMMENT_ACCESS_DENIED);
+		}
+
+		comment.delete();
+
+		Post post = postRepository.findByIdAndIsDeletedFalseForUpdate(postId)
+			.orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+		post.decrementCommentCount();
+	}
+
 	@Transactional(readOnly = true)
 	public CommentListResponse getCommentList(Long postId, Integer size, Long lastId) {
 		validatePostExists(postId);
