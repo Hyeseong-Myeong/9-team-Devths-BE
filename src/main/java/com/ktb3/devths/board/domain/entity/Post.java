@@ -77,4 +77,9 @@ public class Post {
 	public void updateContent(String content) {
 		this.content = content;
 	}
+
+	public void delete() {
+		this.isDeleted = true;
+		this.deletedAt = LocalDateTime.now();
+	}
 }

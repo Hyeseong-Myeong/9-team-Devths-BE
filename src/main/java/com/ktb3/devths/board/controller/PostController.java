@@ -3,6 +3,7 @@ package com.ktb3.devths.board.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -82,5 +83,15 @@ public class PostController {
 		return ResponseEntity.ok(
 			ApiResponse.success("게시글을 성공적으로 조회하였습니다.", response)
 		);
+	}
+
+	@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204")
+	@DeleteMapping("/{postId}")
+	public ResponseEntity<Void> deletePost(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@PathVariable Long postId
+	) {
+		postService.deletePost(userPrincipal.getUserId(), postId);
+		return ResponseEntity.noContent().build();
 	}
 }

@@ -3,13 +3,16 @@ package com.ktb3.devths.global.exception;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.ktb3.devths.global.response.ApiResponse;
 import com.ktb3.devths.global.response.ErrorCode;
 
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -31,6 +34,25 @@ public class GlobalExceptionHandler {
 		return ResponseEntity
 			.status(HttpStatus.FORBIDDEN)
 			.body(ApiResponse.error(ErrorCode.ACCESS_DENIED));
+	}
+
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatchException(
+		MethodArgumentTypeMismatchException ex
+	) {
+		return ResponseEntity
+			.status(HttpStatus.BAD_REQUEST)
+			.body(ApiResponse.error(ErrorCode.INVALID_REQUEST));
+	}
+
+	@ExceptionHandler({
+		ConstraintViolationException.class,
+		BindException.class
+	})
+	public ResponseEntity<ApiResponse<Void>> handleBadRequestException(Exception ex) {
+		return ResponseEntity
+			.status(HttpStatus.BAD_REQUEST)
+			.body(ApiResponse.error(ErrorCode.INVALID_REQUEST));
 	}
 
 	@ExceptionHandler(CustomException.class)

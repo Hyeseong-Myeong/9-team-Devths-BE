@@ -168,6 +168,18 @@ public class PostService {
 		return PostDetailResponse.of(post, attachments, postTags, authorInfo, isLiked, s3StorageService);
 	}
 
+	@Transactional
+	public void deletePost(Long userId, Long postId) {
+		Post post = postRepository.findByIdAndIsDeletedFalseWithUser(postId)
+			.orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+
+		if (!post.getUser().getId().equals(userId)) {
+			throw new CustomException(ErrorCode.POST_ACCESS_DENIED);
+		}
+
+		post.delete();
+	}
+
 	private List<Post> fetchPosts(String keyword, boolean hasKeyword, Long lastId, Pageable pageable) {
 		if (hasKeyword && lastId != null) {
 			return postRepository.findPostsByKeywordNotDeletedAfterCursor(keyword, lastId, pageable);
