@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ktb3.devths.notification.domain.constant.NotificationCategory;
@@ -30,7 +31,7 @@ public class NotificationService {
 	private final NotificationRepository notificationRepository;
 	private final UserRepository userRepository;
 
-	@Transactional
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public Notification createAnalysisCompleteNotification(User recipient, Long roomId, String summary) {
 		Notification notification = Notification.builder()
 			.recipient(recipient)
@@ -49,7 +50,7 @@ public class NotificationService {
 		return savedNotification;
 	}
 
-	@Transactional
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public Notification createFollowNotification(User recipient, Long senderId, String senderNickname) {
 		Notification notification = Notification.builder()
 			.recipient(recipient)
@@ -68,7 +69,7 @@ public class NotificationService {
 		return savedNotification;
 	}
 
-	@Transactional
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public Notification createPostCommentNotification(
 		User recipient,
 		Long senderId,
@@ -99,7 +100,7 @@ public class NotificationService {
 		return savedNotification;
 	}
 
-	@Transactional
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public Notification createCommentReplyNotification(
 		User recipient,
 		Long senderId,
