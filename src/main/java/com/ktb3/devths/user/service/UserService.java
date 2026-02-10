@@ -40,6 +40,7 @@ import com.ktb3.devths.user.dto.response.UserMeResponse;
 import com.ktb3.devths.user.dto.response.UserProfileResponse;
 import com.ktb3.devths.user.dto.response.UserSignupResponse;
 import com.ktb3.devths.user.dto.response.UserUpdateResponse;
+import com.ktb3.devths.user.repository.FollowRepository;
 import com.ktb3.devths.user.repository.SocialAccountRepository;
 import com.ktb3.devths.user.repository.UserInterestRepository;
 import com.ktb3.devths.user.repository.UserRepository;
@@ -59,6 +60,7 @@ public class UserService {
 	private static final int MAX_MY_COMMENT_PAGE_SIZE = 100;
 
 	private final UserRepository userRepository;
+	private final FollowRepository followRepository;
 	private final SocialAccountRepository socialAccountRepository;
 	private final UserInterestRepository userInterestRepository;
 	private final UserTokenRepository userTokenRepository;
@@ -285,7 +287,7 @@ public class UserService {
 	}
 
 	@Transactional(readOnly = true)
-	public UserProfileResponse getUserProfile(Long requesterId, Long targetUserId) { //requesterId -> 추후 isFollowing 계산 시 필요
+	public UserProfileResponse getUserProfile(Long requesterId, Long targetUserId) {
 		User user = userRepository.findByIdAndIsWithdrawFalse(targetUserId)
 			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
@@ -301,12 +303,14 @@ public class UserService {
 			))
 			.orElse(null);
 
+		boolean isFollowing = followRepository.existsByFollowerIdAndFollowingId(requesterId, targetUserId);
+
 		return UserProfileResponse.of(
 			user.getId(),
 			user.getNickname(),
 			profileImage,
 			interests,
-			false
+			isFollowing
 		);
 	}
 
