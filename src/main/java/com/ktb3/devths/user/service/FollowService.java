@@ -21,6 +21,7 @@ import com.ktb3.devths.user.domain.entity.UserStat;
 import com.ktb3.devths.user.dto.response.FollowResponse;
 import com.ktb3.devths.user.dto.response.FollowerListResponse;
 import com.ktb3.devths.user.dto.response.FollowerSummaryResponse;
+import com.ktb3.devths.user.dto.response.FollowingListResponse;
 import com.ktb3.devths.user.repository.FollowRepository;
 import com.ktb3.devths.user.repository.UserRepository;
 import com.ktb3.devths.user.repository.UserStatRepository;
@@ -33,8 +34,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class FollowService {
 
-	private static final int DEFAULT_FOLLOWER_PAGE_SIZE = 10;
-	private static final int MAX_FOLLOWER_PAGE_SIZE = 100;
+	private static final int DEFAULT_PAGE_SIZE = 10;
+	private static final int MAX_PAGE_SIZE = 100;
 
 	private final UserRepository userRepository;
 	private final FollowRepository followRepository;
@@ -128,8 +129,8 @@ public class FollowService {
 	@Transactional(readOnly = true)
 	public FollowerListResponse getMyFollowers(Long userId, Integer size, Long lastId) {
 		int pageSize = (size == null || size <= 0)
-			? DEFAULT_FOLLOWER_PAGE_SIZE
-			: Math.min(size, MAX_FOLLOWER_PAGE_SIZE);
+			? DEFAULT_PAGE_SIZE
+			: Math.min(size, MAX_PAGE_SIZE);
 		Pageable pageable = PageRequest.of(0, pageSize + 1);
 
 		List<Follow> follows = (lastId == null)
@@ -170,6 +171,47 @@ public class FollowService {
 		Long nextLastId = followers.isEmpty() ? null : followers.getLast().id();
 
 		return new FollowerListResponse(followers, hasNext, nextLastId);
+	}
+
+	@Transactional(readOnly = true)
+	public FollowingListResponse getMyFollowings(Long userId, Integer size, Long lastId, String nickname) {
+		int pageSize = (size == null || size <= 0)
+			? DEFAULT_PAGE_SIZE
+			: Math.min(size, MAX_PAGE_SIZE);
+		Pageable pageable = PageRequest.of(0, pageSize + 1);
+
+		String nicknameParam = (nickname == null || nickname.isBlank()) ? null : nickname;
+
+		List<Follow> follows = (lastId == null)
+			? followRepository.findFollowingsByUserId(userId, nicknameParam, pageable)
+			: followRepository.findFollowingsByUserIdAfterCursor(userId, nicknameParam, lastId, pageable);
+
+		boolean hasNext = follows.size() > pageSize;
+		List<Follow> actualFollows = hasNext
+			? follows.subList(0, pageSize)
+			: follows;
+
+		List<FollowerSummaryResponse> followings = actualFollows.stream()
+			.map(f -> {
+				User following = f.getFollowing();
+				String profileImageUrl = s3AttachmentRepository
+					.findTopByRefTypeAndRefIdAndIsDeletedFalseOrderByCreatedAtDesc(RefType.USER, following.getId())
+					.map(attachment -> s3StorageService.getPublicUrl(attachment.getS3Key()))
+					.orElse(null);
+
+				return new FollowerSummaryResponse(
+					f.getId(),
+					following.getId(),
+					following.getNickname(),
+					profileImageUrl,
+					true
+				);
+			})
+			.toList();
+
+		Long nextLastId = followings.isEmpty() ? null : followings.getLast().id();
+
+		return new FollowingListResponse(followings, hasNext, nextLastId);
 	}
 
 	private UserStat getOrCreateUserStat(Long userId) {

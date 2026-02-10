@@ -21,6 +21,7 @@ import com.ktb3.devths.user.dto.request.UserSignupRequest;
 import com.ktb3.devths.user.dto.request.UserUpdateRequest;
 import com.ktb3.devths.user.dto.response.FollowResponse;
 import com.ktb3.devths.user.dto.response.FollowerListResponse;
+import com.ktb3.devths.user.dto.response.FollowingListResponse;
 import com.ktb3.devths.user.dto.response.MyCommentListResponse;
 import com.ktb3.devths.user.dto.response.MyPostListResponse;
 import com.ktb3.devths.user.dto.response.UserMeResponse;
@@ -115,6 +116,21 @@ public class UserController {
 
 		return ResponseEntity.ok(
 			ApiResponse.success("내 팔로워 목록을 성공적으로 조회하였습니다.", response)
+		);
+	}
+
+	@GetMapping("/me/followings")
+	public ResponseEntity<ApiResponse<FollowingListResponse>> getMyFollowings(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@RequestParam(required = false) Integer size,
+		@RequestParam(required = false) Long lastId,
+		@RequestParam(required = false) String nickname
+	) {
+		FollowingListResponse response = followService.getMyFollowings(
+			userPrincipal.getUserId(), size, lastId, nickname);
+
+		return ResponseEntity.ok(
+			ApiResponse.success("내 팔로잉 목록을 성공적으로 조회하였습니다.", response)
 		);
 	}
 
