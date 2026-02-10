@@ -19,12 +19,14 @@ import com.ktb3.devths.global.security.UserPrincipal;
 import com.ktb3.devths.user.dto.internal.UserSignupResult;
 import com.ktb3.devths.user.dto.request.UserSignupRequest;
 import com.ktb3.devths.user.dto.request.UserUpdateRequest;
+import com.ktb3.devths.user.dto.response.FollowResponse;
 import com.ktb3.devths.user.dto.response.MyCommentListResponse;
 import com.ktb3.devths.user.dto.response.MyPostListResponse;
 import com.ktb3.devths.user.dto.response.UserMeResponse;
 import com.ktb3.devths.user.dto.response.UserProfileResponse;
 import com.ktb3.devths.user.dto.response.UserSignupResponse;
 import com.ktb3.devths.user.dto.response.UserUpdateResponse;
+import com.ktb3.devths.user.service.FollowService;
 import com.ktb3.devths.user.service.UserService;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,6 +38,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UserController {
 	private final UserService userService;
+	private final FollowService followService;
 
 	@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201")
 	@PostMapping
@@ -111,6 +114,18 @@ public class UserController {
 		return ResponseEntity.ok(
 			ApiResponse.success("회원의 프로필을 성공적으로 조회하였습니다.", response)
 		);
+	}
+
+	@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201")
+	@PostMapping("/{userId}/followers")
+	public ResponseEntity<ApiResponse<FollowResponse>> followUser(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@PathVariable Long userId
+	) {
+		FollowResponse response = followService.follow(userPrincipal.getUserId(), userId);
+
+		return ResponseEntity.status(HttpStatus.CREATED)
+			.body(ApiResponse.success("해당 유저를 팔로우하였습니다.", response));
 	}
 
 	@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204")
