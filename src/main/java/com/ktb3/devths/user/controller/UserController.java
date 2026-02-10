@@ -20,6 +20,7 @@ import com.ktb3.devths.user.dto.internal.UserSignupResult;
 import com.ktb3.devths.user.dto.request.UserSignupRequest;
 import com.ktb3.devths.user.dto.request.UserUpdateRequest;
 import com.ktb3.devths.user.dto.response.FollowResponse;
+import com.ktb3.devths.user.dto.response.FollowerListResponse;
 import com.ktb3.devths.user.dto.response.MyCommentListResponse;
 import com.ktb3.devths.user.dto.response.MyPostListResponse;
 import com.ktb3.devths.user.dto.response.UserMeResponse;
@@ -101,6 +102,19 @@ public class UserController {
 
 		return ResponseEntity.ok(
 			ApiResponse.success("내가 작성한 댓글 목록을 성공적으로 조회하였습니다.", response)
+		);
+	}
+
+	@GetMapping("/me/followers")
+	public ResponseEntity<ApiResponse<FollowerListResponse>> getMyFollowers(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@RequestParam(required = false) Integer size,
+		@RequestParam(required = false) Long lastId
+	) {
+		FollowerListResponse response = followService.getMyFollowers(userPrincipal.getUserId(), size, lastId);
+
+		return ResponseEntity.ok(
+			ApiResponse.success("내 팔로워 목록을 성공적으로 조회하였습니다.", response)
 		);
 	}
 

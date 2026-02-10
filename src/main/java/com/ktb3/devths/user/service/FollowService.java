@@ -1,15 +1,26 @@
 package com.ktb3.devths.user.service;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ktb3.devths.global.exception.CustomException;
 import com.ktb3.devths.global.response.ErrorCode;
+import com.ktb3.devths.global.storage.domain.constant.RefType;
+import com.ktb3.devths.global.storage.repository.S3AttachmentRepository;
+import com.ktb3.devths.global.storage.service.S3StorageService;
 import com.ktb3.devths.user.domain.entity.Follow;
 import com.ktb3.devths.user.domain.entity.User;
 import com.ktb3.devths.user.domain.entity.UserStat;
 import com.ktb3.devths.user.dto.response.FollowResponse;
+import com.ktb3.devths.user.dto.response.FollowerListResponse;
+import com.ktb3.devths.user.dto.response.FollowerSummaryResponse;
 import com.ktb3.devths.user.repository.FollowRepository;
 import com.ktb3.devths.user.repository.UserRepository;
 import com.ktb3.devths.user.repository.UserStatRepository;
@@ -22,9 +33,14 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class FollowService {
 
+	private static final int DEFAULT_FOLLOWER_PAGE_SIZE = 10;
+	private static final int MAX_FOLLOWER_PAGE_SIZE = 100;
+
 	private final UserRepository userRepository;
 	private final FollowRepository followRepository;
 	private final UserStatRepository userStatRepository;
+	private final S3AttachmentRepository s3AttachmentRepository;
+	private final S3StorageService s3StorageService;
 
 	@Transactional
 	public FollowResponse follow(Long followerId, Long followingId) {
@@ -107,6 +123,53 @@ public class FollowService {
 		}
 
 		log.info("언팔로우 성공: followerId={}, followingId={}", followerId, followingId);
+	}
+
+	@Transactional(readOnly = true)
+	public FollowerListResponse getMyFollowers(Long userId, Integer size, Long lastId) {
+		int pageSize = (size == null || size <= 0)
+			? DEFAULT_FOLLOWER_PAGE_SIZE
+			: Math.min(size, MAX_FOLLOWER_PAGE_SIZE);
+		Pageable pageable = PageRequest.of(0, pageSize + 1);
+
+		List<Follow> follows = (lastId == null)
+			? followRepository.findFollowersByUserId(userId, pageable)
+			: followRepository.findFollowersByUserIdAfterCursor(userId, lastId, pageable);
+
+		boolean hasNext = follows.size() > pageSize;
+		List<Follow> actualFollows = hasNext
+			? follows.subList(0, pageSize)
+			: follows;
+
+		List<Long> followerUserIds = actualFollows.stream()
+			.map(f -> f.getFollower().getId())
+			.toList();
+
+		Set<Long> followingBackIds = followerUserIds.isEmpty()
+			? new HashSet<>()
+			: new HashSet<>(followRepository.findFollowingIdsByFollowerIdAndFollowingIdIn(userId, followerUserIds));
+
+		List<FollowerSummaryResponse> followers = actualFollows.stream()
+			.map(f -> {
+				User follower = f.getFollower();
+				String profileImageUrl = s3AttachmentRepository
+					.findTopByRefTypeAndRefIdAndIsDeletedFalseOrderByCreatedAtDesc(RefType.USER, follower.getId())
+					.map(attachment -> s3StorageService.getPublicUrl(attachment.getS3Key()))
+					.orElse(null);
+
+				return new FollowerSummaryResponse(
+					f.getId(),
+					follower.getId(),
+					follower.getNickname(),
+					profileImageUrl,
+					followingBackIds.contains(follower.getId())
+				);
+			})
+			.toList();
+
+		Long nextLastId = followers.isEmpty() ? null : followers.getLast().id();
+
+		return new FollowerListResponse(followers, hasNext, nextLastId);
 	}
 
 	private UserStat getOrCreateUserStat(Long userId) {
