@@ -69,6 +69,37 @@ public class NotificationService {
 	}
 
 	@Transactional
+	public Notification createPostCommentNotification(
+		User recipient,
+		Long senderId,
+		Long postId,
+		String senderNickname,
+		String previewContent
+	) {
+		Notification notification = Notification.builder()
+			.recipient(recipient)
+			.sender(userRepository.getReferenceById(senderId))
+			.category(NotificationCategory.BOARD)
+			.type(NotificationType.COMMENT)
+			.content(senderNickname + "님이 회원님의 게시물에 댓글을 남겼습니다.")
+			.targetPath("/posts/" + postId)
+			.resourceId(postId)
+			.isRead(false)
+			.build();
+
+		Notification savedNotification = notificationRepository.save(notification);
+		log.info(
+			"댓글 알림 생성: recipientId={}, senderId={}, postId={}, previewLength={}",
+			recipient.getId(),
+			senderId,
+			postId,
+			previewContent == null ? 0 : previewContent.length()
+		);
+
+		return savedNotification;
+	}
+
+	@Transactional
 	public NotificationListResponse getNotificationList(Long userId, Integer size, Long lastId) {
 		int pageSize = (size == null || size <= 0) ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
 

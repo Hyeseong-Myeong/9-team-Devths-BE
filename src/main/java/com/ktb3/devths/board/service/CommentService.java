@@ -17,6 +17,7 @@ import com.ktb3.devths.board.dto.request.CommentUpdateRequest;
 import com.ktb3.devths.board.dto.response.CommentCreateResponse;
 import com.ktb3.devths.board.dto.response.CommentListResponse;
 import com.ktb3.devths.board.dto.response.CommentUpdateResponse;
+import com.ktb3.devths.board.event.BoardEventPublisher;
 import com.ktb3.devths.board.repository.CommentRepository;
 import com.ktb3.devths.board.repository.PostRepository;
 import com.ktb3.devths.global.exception.CustomException;
@@ -42,6 +43,7 @@ public class CommentService {
 	private final UserRepository userRepository;
 	private final S3AttachmentRepository s3AttachmentRepository;
 	private final S3StorageService s3StorageService;
+	private final BoardEventPublisher boardEventPublisher;
 
 	@Transactional
 	public CommentCreateResponse createComment(Long userId, Long postId, CommentCreateRequest request) {
@@ -61,6 +63,16 @@ public class CommentService {
 			.build());
 
 		post.incrementCommentCount();
+		if (!post.getUser().getId().equals(userId)) {
+			boardEventPublisher.publishPostCommentCreated(
+				comment.getId(),
+				post.getId(),
+				post.getUser().getId(),
+				userId,
+				user.getNickname(),
+				buildPreviewContent(request.content())
+			);
+		}
 
 		return CommentCreateResponse.from(comment);
 	}
@@ -166,5 +178,18 @@ public class CommentService {
 				attachment -> attachment,
 				(first, second) -> first
 			));
+	}
+
+	private String buildPreviewContent(String content) {
+		if (content == null) {
+			return "";
+		}
+
+		String trimmed = content.trim();
+		if (trimmed.length() <= 30) {
+			return trimmed;
+		}
+
+		return trimmed.substring(0, 30) + "...";
 	}
 }
