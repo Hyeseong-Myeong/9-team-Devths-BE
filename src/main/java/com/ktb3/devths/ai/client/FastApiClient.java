@@ -90,6 +90,8 @@ public class FastApiClient {
 	}
 
 	public Flux<String> streamChatResponse(FastApiChatRequest request) {
+		rateLimitService.consumeToken(request.userId(), ApiType.FASTAPI_ANALYSIS);
+
 		String url = fastApiProperties.getBaseUrl() + "/ai/chat";
 		return webClient.post()
 			.uri(url)
@@ -116,6 +118,8 @@ public class FastApiClient {
 	}
 
 	public Flux<String> streamInterviewEvaluation(FastApiInterviewEvaluationRequest request) {
+		rateLimitService.consumeToken(request.userId(), ApiType.FASTAPI_ANALYSIS);
+
 		String url = fastApiProperties.getBaseUrl() + "/ai/chat";
 
 		// 메타데이터만 로깅 (민감 정보 제외)

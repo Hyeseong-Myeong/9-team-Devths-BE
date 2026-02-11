@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ktb3.devths.auth.dto.internal.TokenPair;
 import com.ktb3.devths.global.config.properties.JwtProperties;
 import com.ktb3.devths.global.exception.CustomException;
+import com.ktb3.devths.global.ratelimit.domain.constant.ApiType;
+import com.ktb3.devths.global.ratelimit.service.RateLimitService;
 import com.ktb3.devths.global.response.ErrorCode;
 import com.ktb3.devths.global.security.jwt.JwtTokenProvider;
 import com.ktb3.devths.user.domain.entity.User;
@@ -26,6 +28,7 @@ public class JwtTokenService {
 	private final JwtTokenProvider jwtTokenProvider;
 	private final UserTokenRepository userTokenRepository;
 	private final JwtProperties jwtProperties;
+	private final RateLimitService rateLimitService;
 
 	/**
 	 * 서비스 Access Token / Refresh Token 발급 및 저장
@@ -90,6 +93,8 @@ public class JwtTokenService {
 				log.warn("재사용된 Refresh Token 감지");
 				return new CustomException(ErrorCode.REFRESH_TOKEN_REUSED);
 			});
+
+		rateLimitService.consumeToken(userToken.getUser().getId(), ApiType.AUTH_TOKEN);
 
 		// 2. 만료 확인
 		if (userToken.getExpiresAt().isBefore(LocalDateTime.now())) {
