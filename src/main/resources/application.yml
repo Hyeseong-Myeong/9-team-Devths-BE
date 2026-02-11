@@ -15,6 +15,13 @@ spring:
       ddl-auto: ${SPRING_JPA_DDL_AUTO}
     show-sql: true
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: ${REDIS_TIMEOUT:2000ms}
+
   security:
     oauth2:
       client:
@@ -86,6 +93,9 @@ fastapi:
   max-poll-attempts: 50
 
 ratelimit:
+  backend: ${RATELIMIT_BACKEND:in-memory}
+  redis:
+    key-prefix: ${RATELIMIT_REDIS_KEY_PREFIX:ratelimit}
   google-calendar:
     bucket-capacity: ${RATELIMIT_GOOGLE_CALENDAR:100}
     enabled: true
@@ -97,6 +107,21 @@ ratelimit:
     enabled: true
   google-oauth:
     bucket-capacity: ${RATELIMIT_GOOGLE_OAUTH:50}
+    enabled: true
+  auth-token:
+    bucket-capacity: ${RATELIMIT_AUTH_TOKEN:100}
+    enabled: true
+  file-presigned:
+    bucket-capacity: ${RATELIMIT_FILE_PRESIGNED:100}
+    enabled: true
+  file-attachment:
+    bucket-capacity: ${RATELIMIT_FILE_ATTACHMENT:200}
+    enabled: true
+  board-write:
+    bucket-capacity: ${RATELIMIT_BOARD_WRITE:300}
+    enabled: true
+  social-action:
+    bucket-capacity: ${RATELIMIT_SOCIAL_ACTION:200}
     enabled: true
 
 async:
