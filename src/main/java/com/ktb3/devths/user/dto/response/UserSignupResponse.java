@@ -22,6 +22,6 @@ public record UserSignupResponse(
 	public record ProfileImage(Long id, String url) {
 	}
 
-	public record UserStats(int followerCount, int followingCount) {
+	public record UserStats(long followerCount, long followingCount) {
 	}
 }

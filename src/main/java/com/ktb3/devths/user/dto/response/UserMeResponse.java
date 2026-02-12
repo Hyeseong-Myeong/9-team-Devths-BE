@@ -10,11 +10,12 @@ public record UserMeResponse(
 	UserSignupResponse.UserStats stats,
 	List<String> interests
 ) {
-	public static UserMeResponse of(User user, List<String> interestNames, UserSignupResponse.ProfileImage profileImage) {
+	public static UserMeResponse of(User user, List<String> interestNames, UserSignupResponse.ProfileImage profileImage,
+		long followerCount, long followingCount) {
 		return new UserMeResponse(
 			user.getNickname(),
 			profileImage,
-			new UserSignupResponse.UserStats(0, 0), // follower/following은 0
+			new UserSignupResponse.UserStats(followerCount, followingCount),
 			interestNames
 		);
 	}

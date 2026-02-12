@@ -44,6 +44,7 @@ import com.ktb3.devths.user.repository.FollowRepository;
 import com.ktb3.devths.user.repository.SocialAccountRepository;
 import com.ktb3.devths.user.repository.UserInterestRepository;
 import com.ktb3.devths.user.repository.UserRepository;
+import com.ktb3.devths.user.repository.UserStatRepository;
 import com.ktb3.devths.user.repository.UserTokenRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -72,6 +73,7 @@ public class UserService {
 	private final S3StorageService s3StorageService;
 	private final CommentRepository commentRepository;
 	private final PostRepository postRepository;
+	private final UserStatRepository userStatRepository;
 
 	@Transactional
 	public UserSignupResult signup(UserSignupRequest request) {
@@ -198,7 +200,15 @@ public class UserService {
 			))
 			.orElse(null);
 
-		return UserMeResponse.of(user, interestNames, profileImage);
+		long followerCount = 0L;
+		long followingCount = 0L;
+		var userStat = userStatRepository.findByUserId(userId);
+		if (userStat.isPresent()) {
+			followerCount = userStat.get().getFollowerCount();
+			followingCount = userStat.get().getFollowingCount();
+		}
+
+		return UserMeResponse.of(user, interestNames, profileImage, followerCount, followingCount);
 	}
 
 	@Transactional
