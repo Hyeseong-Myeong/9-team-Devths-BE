@@ -211,7 +211,8 @@ public class AiChatRoomController {
 			throw new CustomException(ErrorCode.AI_CHATROOM_ACCESS_DENIED);
 		}
 
-		Flux<String> evaluationStream = aiChatInterviewService.evaluateInterview(request.interviewId());
+		boolean retry = request.retry() != null && request.retry();
+		Flux<String> evaluationStream = aiChatInterviewService.evaluateInterview(request.interviewId(), retry);
 
 		return evaluationStream
 			.map(chunk -> {

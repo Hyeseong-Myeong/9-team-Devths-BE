@@ -118,15 +118,15 @@ public class FastApiClient {
 	}
 
 	public Flux<String> streamInterviewEvaluation(FastApiInterviewEvaluationRequest request) {
-		rateLimitService.consumeToken(request.userId(), ApiType.FASTAPI_ANALYSIS);
+		rateLimitService.consumeToken(request.value().userId(), ApiType.FASTAPI_ANALYSIS);
 
-		String url = fastApiProperties.getBaseUrl() + "/ai/chat";
+		String url = fastApiProperties.getBaseUrl() + "/ai/evaluation/analyze";
 
 		// 메타데이터만 로깅 (민감 정보 제외)
-		log.info("면접 평가 요청 - interviewId={}, type={}, messageCount={}",
-			LogSanitizer.sanitize(String.valueOf(request.interviewId())),
-			request.interviewType(),
-			request.messages().size());
+		log.info("면접 평가 요청 - sessionId={}, type={}, contextCount={}",
+			LogSanitizer.sanitize(String.valueOf(request.value().sessionId())),
+			request.value().interviewType(),
+			request.value().context().size());
 
 		return webClient.post()
 			.uri(url)

@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record InterviewEvaluationRequest(
 	@NotNull(message = "면접 ID는 필수입니다")
-	Long interviewId
+	Long interviewId,
+	Boolean retry
 ) {
 }

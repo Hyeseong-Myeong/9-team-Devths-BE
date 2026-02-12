@@ -90,7 +90,7 @@ public class AiChatInterviewService {
 		return aiChatInterviewRepository.findByRoomIdAndStatus(roomId, InterviewStatus.IN_PROGRESS);
 	}
 
-	public Flux<String> evaluateInterview(Long interviewId) {
+	public Flux<String> evaluateInterview(Long interviewId, boolean retry) {
 		// 현재 스레드의 Authentication 캡처 (여기서는 SecurityContext가 존재함)
 		Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
 
@@ -99,33 +99,44 @@ public class AiChatInterviewService {
 
 		List<AiChatMessage> messages = aiChatMessageRepository.findAll().stream()
 			.filter(msg -> msg.getInterview() != null && msg.getInterview().getId().equals(interviewId))
+			.sorted((a, b) -> a.getId().compareTo(b.getId()))
 			.collect(Collectors.toList());
 
 		if (messages.isEmpty()) {
 			throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND);
 		}
 
-		List<FastApiInterviewEvaluationRequest.FastApiInterviewMessage> interviewMessages = messages.stream()
-			.map(msg -> new FastApiInterviewEvaluationRequest.FastApiInterviewMessage(
-				msg.getRole().name().toLowerCase(),
-				msg.getContent()
-			))
-			.collect(Collectors.toList());
+		// ASSISTANT(질문) → USER(답변) 순서로 페어링하여 Q&A 쌍 생성
+		List<FastApiInterviewEvaluationRequest.ContextEntry> context = new java.util.ArrayList<>();
+		for (int i = 0; i < messages.size() - 1; i++) {
+			AiChatMessage current = messages.get(i);
+			AiChatMessage next = messages.get(i + 1);
+			if (current.getRole() == MessageRole.ASSISTANT && next.getRole() == MessageRole.USER) {
+				context.add(new FastApiInterviewEvaluationRequest.ContextEntry(
+					current.getContent(),
+					next.getContent()
+				));
+			}
+		}
 
 		// roomId와 userId 추출
 		Long roomId = room.getId();
 		Long userId = room.getUser().getId();
 
 		FastApiInterviewEvaluationRequest request = new FastApiInterviewEvaluationRequest(
-			interviewId,
-			interview.getInterviewType().name().toLowerCase(),
-			roomId,
-			userId,
-			interviewMessages
+			"면접 리포트 생성 (면접 종료)",
+			new FastApiInterviewEvaluationRequest.Value(
+				context,
+				retry,
+				roomId,
+				interviewId,
+				userId,
+				interview.getInterviewType().name().toLowerCase()
+			)
 		);
 
-		log.info("면접 평가 시작: interviewId={}, roomId={}, userId={}, messageCount={}",
-			interviewId, roomId, userId, messages.size());
+		log.info("면접 평가 시작: interviewId={}, roomId={}, userId={}, contextCount={}",
+			interviewId, roomId, userId, context.size());
 
 		// 전체 평가 결과 누적용
 		StringBuilder fullEvaluation = new StringBuilder();
