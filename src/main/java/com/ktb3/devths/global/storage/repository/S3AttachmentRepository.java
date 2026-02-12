@@ -3,6 +3,7 @@ package com.ktb3.devths.global.storage.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,6 +25,8 @@ public interface S3AttachmentRepository extends JpaRepository<S3Attachment, Long
 	);
 
 	List<S3Attachment> findByRefTypeAndRefIdAndIsDeletedFalseOrderBySortOrderAsc(RefType refType, Long refId);
+
+	List<S3Attachment> findByRefTypeAndRefIdAndIsDeletedFalseOrderByCreatedAtDesc(RefType refType, Long refId, Pageable pageable);
 
 	@Query("SELECT s FROM S3Attachment s "
 		+ "JOIN FETCH s.user "

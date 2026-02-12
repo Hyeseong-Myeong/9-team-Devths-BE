@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ktb3.devths.chat.dto.request.PrivateChatRoomCreateRequest;
+import com.ktb3.devths.chat.dto.response.ChatRoomDetailResponse;
 import com.ktb3.devths.chat.dto.response.ChatRoomListResponse;
 import com.ktb3.devths.chat.dto.response.PrivateChatRoomCreateResponse;
 import com.ktb3.devths.chat.service.ChatRoomService;
@@ -44,6 +46,19 @@ public class ChatRoomController {
 		);
 
 		return ResponseEntity.ok(ApiResponse.success("채팅방 목록을 성공적으로 조회하였습니다.", response));
+	}
+
+	@GetMapping("/{roomId}")
+	public ResponseEntity<ApiResponse<ChatRoomDetailResponse>> getChatRoomDetail(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@PathVariable Long roomId
+	) {
+		ChatRoomDetailResponse response = chatRoomService.getChatRoomDetail(
+			userPrincipal.getUserId(),
+			roomId
+		);
+
+		return ResponseEntity.ok(ApiResponse.success("채팅방 상세 정보를 성공적으로 조회하였습니다.", response));
 	}
 
 	@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201")

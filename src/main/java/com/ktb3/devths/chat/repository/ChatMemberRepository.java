@@ -2,6 +2,7 @@ package com.ktb3.devths.chat.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +13,8 @@ import com.ktb3.devths.chat.domain.constant.ChatRoomTypes;
 import com.ktb3.devths.chat.domain.entity.ChatMember;
 
 public interface ChatMemberRepository extends JpaRepository<ChatMember, Long> {
+
+	Optional<ChatMember> findByChatRoomIdAndUserId(Long roomId, Long userId);
 
 	@Query("SELECT m FROM ChatMember m JOIN FETCH m.chatRoom r "
 		+ "WHERE m.user.id = :userId AND r.type = :type AND r.isDeleted = false "

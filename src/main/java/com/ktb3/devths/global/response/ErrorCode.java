@@ -43,6 +43,7 @@ public enum ErrorCode {
 	EVENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 일정에 접근 권한이 없습니다"),
 	POST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 게시글에 접근 권한이 없습니다"),
 	COMMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 댓글에 접근 권한이 없습니다"),
+	CHATROOM_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 채팅방에 접근 권한이 없습니다"),
 
 	// 404 Not Found
 	RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다"),
@@ -54,6 +55,7 @@ public enum ErrorCode {
 	TODO_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 할 일을 찾을 수 없습니다"),
 	POST_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 게시글을 찾을 수 없습니다"),
 	COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 댓글을 찾을 수 없습니다"),
+	CHATROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 채팅방을 찾을 수 없습니다"),
 
 	// 409 Conflict
 	DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다"),

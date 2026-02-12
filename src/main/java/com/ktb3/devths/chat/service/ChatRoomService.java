@@ -14,6 +14,7 @@ import com.ktb3.devths.chat.domain.constant.ChatRoomTypes;
 import com.ktb3.devths.chat.domain.entity.ChatMember;
 import com.ktb3.devths.chat.domain.entity.ChatPrivateRoom;
 import com.ktb3.devths.chat.domain.entity.ChatRoom;
+import com.ktb3.devths.chat.dto.response.ChatRoomDetailResponse;
 import com.ktb3.devths.chat.dto.response.ChatRoomListResponse;
 import com.ktb3.devths.chat.dto.response.ChatRoomSummaryResponse;
 import com.ktb3.devths.chat.dto.response.PrivateChatRoomCreateResponse;
@@ -22,6 +23,8 @@ import com.ktb3.devths.chat.repository.ChatPrivateRoomRepository;
 import com.ktb3.devths.chat.repository.ChatRoomRepository;
 import com.ktb3.devths.global.exception.CustomException;
 import com.ktb3.devths.global.response.ErrorCode;
+import com.ktb3.devths.global.storage.domain.constant.RefType;
+import com.ktb3.devths.global.storage.repository.S3AttachmentRepository;
 import com.ktb3.devths.user.domain.entity.User;
 import com.ktb3.devths.user.repository.UserRepository;
 
@@ -35,6 +38,7 @@ public class ChatRoomService {
 
 	private static final int DEFAULT_PAGE_SIZE = 10;
 	private static final int MAX_PAGE_SIZE = 100;
+	private static final int RECENT_IMAGES_LIMIT = 4;
 	private static final String INVITE_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	private static final int INVITE_CODE_LENGTH = 8;
 	private static final int MAX_INVITE_CODE_RETRY = 5;
@@ -42,6 +46,7 @@ public class ChatRoomService {
 	private final ChatRoomRepository chatRoomRepository;
 	private final ChatPrivateRoomRepository chatPrivateRoomRepository;
 	private final ChatMemberRepository chatMemberRepository;
+	private final S3AttachmentRepository s3AttachmentRepository;
 	private final UserRepository userRepository;
 
 	@Transactional(readOnly = true)
@@ -158,6 +163,38 @@ public class ChatRoomService {
 			targetUser.getNickname(),
 			chatRoom.getInviteCode(),
 			chatRoom.getCreatedAt()
+		);
+	}
+
+	@Transactional(readOnly = true)
+	public ChatRoomDetailResponse getChatRoomDetail(Long userId, Long roomId) {
+		ChatRoom chatRoom = chatRoomRepository.findByIdAndIsDeletedFalse(roomId)
+			.orElseThrow(() -> new CustomException(ErrorCode.CHATROOM_NOT_FOUND));
+
+		ChatMember member = chatMemberRepository.findByChatRoomIdAndUserId(roomId, userId)
+			.orElseThrow(() -> new CustomException(ErrorCode.CHATROOM_ACCESS_DENIED));
+
+		Pageable imagePage = PageRequest.of(0, RECENT_IMAGES_LIMIT);
+		List<ChatRoomDetailResponse.RecentImage> recentImages = s3AttachmentRepository
+			.findByRefTypeAndRefIdAndIsDeletedFalseOrderByCreatedAtDesc(RefType.CHATROOM, roomId, imagePage)
+			.stream()
+			.map(attachment -> new ChatRoomDetailResponse.RecentImage(
+				attachment.getId(),
+				attachment.getS3Key(),
+				attachment.getOriginalName(),
+				attachment.getCreatedAt()
+			))
+			.toList();
+
+		return new ChatRoomDetailResponse(
+			chatRoom.getId(),
+			chatRoom.getType().name(),
+			chatRoom.getTitle(),
+			member.isAlarmOn(),
+			member.getRoomName(),
+			chatRoom.getInviteCode(),
+			chatRoom.getCreatedAt(),
+			recentImages
 		);
 	}
 
