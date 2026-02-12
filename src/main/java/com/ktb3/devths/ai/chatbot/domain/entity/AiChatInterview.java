@@ -6,6 +6,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.ktb3.devths.ai.chatbot.domain.constant.InterviewCompletionType;
 import com.ktb3.devths.ai.chatbot.domain.constant.InterviewStatus;
 import com.ktb3.devths.ai.chatbot.domain.constant.InterviewType;
 
@@ -54,6 +55,10 @@ public class AiChatInterview {
 	@Enumerated(EnumType.STRING)
 	private InterviewStatus status = InterviewStatus.IN_PROGRESS;
 
+	@Column(name = "completion_type")
+	@Enumerated(EnumType.STRING)
+	private InterviewCompletionType completionType;
+
 	@Column(name = "created_at", nullable = false)
 	@CreatedDate
 	private LocalDateTime createdAt;
@@ -66,7 +71,8 @@ public class AiChatInterview {
 		this.currentQuestionCount++;
 	}
 
-	public void complete() {
+	public void complete(InterviewCompletionType completionType) {
 		this.status = InterviewStatus.COMPLETED;
+		this.completionType = completionType;
 	}
 }

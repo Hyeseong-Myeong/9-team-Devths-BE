@@ -86,12 +86,12 @@ public class AiChatMessageService {
 				.orElseThrow(() -> new CustomException(ErrorCode.INTERVIEW_NOT_FOUND));
 
 			if (interview.getStatus() == InterviewStatus.COMPLETED) {
-				throw new CustomException(ErrorCode.INTERVIEW_COMPLETED_EVALUATION_REQUIRED);
+				throw new CustomException(ErrorCode.INTERVIEW_COMPLETED);
 			}
 
 			// 5개 질문 제한 체크
 			if (interview.getCurrentQuestionCount() > 5) {
-				throw new CustomException(ErrorCode.INTERVIEW_COMPLETED_EVALUATION_REQUIRED);
+				throw new CustomException(ErrorCode.INTERVIEW_COMPLETED);
 			}
 			shouldGenerateNextQuestion = interview.getCurrentQuestionCount() < 5;
 		}

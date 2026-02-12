@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.ktb3.devths.ai.analysis.repository.AiOcrResultRepository;
+import com.ktb3.devths.ai.chatbot.domain.constant.InterviewCompletionType;
 import com.ktb3.devths.ai.chatbot.domain.constant.InterviewStatus;
 import com.ktb3.devths.ai.chatbot.domain.constant.InterviewType;
 import com.ktb3.devths.ai.chatbot.domain.constant.MessageRole;
@@ -90,11 +91,30 @@ public class AiChatInterviewService {
 		return aiChatInterviewRepository.findByRoomIdAndStatus(roomId, InterviewStatus.IN_PROGRESS);
 	}
 
+	@Transactional
+	public AiChatInterview endInterview(Long roomId, Long interviewId) {
+		AiChatInterview interview = aiChatInterviewRepository.findById(interviewId)
+			.orElseThrow(() -> new CustomException(ErrorCode.INTERVIEW_NOT_FOUND));
+
+		if (!interview.getRoom().getId().equals(roomId)) {
+			throw new CustomException(ErrorCode.INVALID_INPUT);
+		}
+
+		if (interview.getStatus() != InterviewStatus.COMPLETED) {
+			interview.complete(InterviewCompletionType.MANUAL_END);
+		}
+
+		return interview;
+	}
+
 	public Flux<String> evaluateInterview(Long interviewId, boolean retry) {
 		// 현재 스레드의 Authentication 캡처 (여기서는 SecurityContext가 존재함)
 		Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
 
 		AiChatInterview interview = getInterview(interviewId);
+		if (interview.getCompletionType() == InterviewCompletionType.MANUAL_END) {
+			throw new CustomException(ErrorCode.INTERVIEW_EVALUATION_NOT_ALLOWED);
+		}
 		AiChatRoom room = interview.getRoom();
 
 		List<AiChatMessage> messages = aiChatMessageRepository.findAll().stream()
@@ -162,7 +182,7 @@ public class AiChatInterviewService {
 								// 2. 면접 상태를 COMPLETED로 변경
 								AiChatInterview interviewEntity = aiChatInterviewRepository.findById(interviewId)
 									.orElseThrow(() -> new CustomException(ErrorCode.INTERVIEW_NOT_FOUND));
-								interviewEntity.complete();
+								interviewEntity.complete(InterviewCompletionType.EVALUATION);
 
 								log.info("면접 평가 완료 및 저장: interviewId={}, evaluationLength={}",
 									interviewId, fullEvaluation.length());
