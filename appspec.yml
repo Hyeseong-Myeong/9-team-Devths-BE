@@ -2,31 +2,41 @@ version: 0.0
 os: linux
 files:
   - source: /
-    destination: /home/ubuntu/be
-    overwrite: true
+    destination: /home/ubuntu/app
+    overwrite: yes
 
 permissions:
-  - object: /home/ubuntu/be/scripts
+  - object: /home/ubuntu/app
     owner: ubuntu
     group: ubuntu
     mode: 755
+    type:
+      - directory
+  - object: /home/ubuntu/app/scripts
+    owner: ubuntu
+    group: ubuntu
+    mode: 755
+    type:
+      - directory
+  - object: /home/ubuntu/app/scripts/*.sh
+    owner: ubuntu
+    group: ubuntu
+    mode: 755
+    type:
+      - file
 
 hooks:
+  ApplicationStop:
+    - location: scripts/stop.sh
+      timeout: 60
+      runas: ubuntu
+
   ApplicationStart:
     - location: scripts/start.sh
       timeout: 300
       runas: ubuntu
-  
+
   ValidateService:
     - location: scripts/health.sh
-      timeout: 300
+      timeout: 180
       runas: ubuntu
-    
-    - location: scripts/switch.sh
-      timeout: 60
-      runas: ubuntu
-
-    - location: scripts/stop.sh
-      timeout: 60
-      runas: ubuntu
-      # 스위칭 후 기존 서버 종료

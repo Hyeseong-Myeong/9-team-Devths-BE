@@ -239,7 +239,7 @@ jobs:
           echo "🚀 ${{ steps.setup_name.outputs.artifact_name }}을 S3로 업로드합니다..."
           aws s3 cp "${{ steps.setup_name.outputs.artifact_name }}" "s3://${{ env.S3_BUCKET }}/${{ env.S3_KEY }}" --only-show-errors
           echo "✅ S3 업로드 완료"
-          echo "s3_key=${{ env.S3_KEY }}" >> $GITHUB_OUTP
+          echo "s3_key=${{ env.S3_KEY }}" >> $GITHUB_OUTPUT
 
       - name: 6. 아티팩트 정보 출력
         run: |

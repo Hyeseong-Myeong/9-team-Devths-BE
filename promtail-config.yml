@@ -1,0 +1,52 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+# 1. 로그를 받을 Loki 주소
+clients:
+  - url: http://monitor.internal:3100/loki/api/v1/push
+
+# 2. 로그를 어디까지 읽었는지 저장하는 파일
+positions:
+  filename: /tmp/positions.yaml
+
+# 3. 스크래핑 하는 것
+scrape_configs:
+  # 2. SpringBoot 컨테이너 로그 수집 설정
+  - job_name: spring_logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: spring
+          application: devths
+          __path__: /var/log/*.log
+
+    pipeline_stages:
+      # JSON 로그 파싱
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            thread: thread_name
+            logger: logger_name
+            message: message
+            traceId: traceId
+            spanId: spanId
+            application: application
+
+      # 타임스탬프 추출
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+
+      # 라벨 추가 (traceId는 필터링에 중요)
+      - labels:
+          level:
+          traceId:
+          spanId:
+          application:
+
+      # 로그 출력 포맷 지정 (Loki에서 보기 좋게)
+      - output:
+          source: message
