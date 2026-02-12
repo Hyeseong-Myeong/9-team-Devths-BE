@@ -39,6 +39,8 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class AiChatInterviewService {
 
+	private static final int MAX_EVALUATION_CONTEXT_PAIRS = 15;
+
 	private final AiChatInterviewRepository aiChatInterviewRepository;
 	private final AiChatMessageRepository aiChatMessageRepository;
 	private final AiOcrResultRepository aiOcrResultRepository;
@@ -127,17 +129,20 @@ public class AiChatInterviewService {
 		}
 
 		// ASSISTANT(질문) → USER(답변) 순서로 페어링하여 Q&A 쌍 생성
-		List<FastApiInterviewEvaluationRequest.ContextEntry> context = new java.util.ArrayList<>();
+		List<FastApiInterviewEvaluationRequest.ContextEntry> allContext = new java.util.ArrayList<>();
 		for (int i = 0; i < messages.size() - 1; i++) {
 			AiChatMessage current = messages.get(i);
 			AiChatMessage next = messages.get(i + 1);
 			if (current.getRole() == MessageRole.ASSISTANT && next.getRole() == MessageRole.USER) {
-				context.add(new FastApiInterviewEvaluationRequest.ContextEntry(
+				allContext.add(new FastApiInterviewEvaluationRequest.ContextEntry(
 					current.getContent(),
 					next.getContent()
 				));
 			}
 		}
+
+		int fromIndex = Math.max(0, allContext.size() - MAX_EVALUATION_CONTEXT_PAIRS);
+		List<FastApiInterviewEvaluationRequest.ContextEntry> context = allContext.subList(fromIndex, allContext.size());
 
 		// roomId와 userId 추출
 		Long roomId = room.getId();
@@ -168,7 +173,7 @@ public class AiChatInterviewService {
 				log.debug("평가 결과 청크 수신: length={}", chunk.length());
 			})
 			.doOnComplete(() -> {
-				if (!hasError.get() && fullEvaluation.length() > 0) {
+				if (!hasError.get() && !fullEvaluation.isEmpty()) {
 					try {
 						// SecurityContext 복원
 						SecurityContextHolder.getContext().setAuthentication(currentAuth);

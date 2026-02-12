@@ -79,7 +79,6 @@ public class AiChatMessageService {
 
 		AiChatInterview interview = null;
 		FastApiChatContext context = FastApiChatContext.createNormalMode();
-		boolean shouldGenerateNextQuestion = true;
 
 		if (interviewId != null) {
 			interview = aiChatInterviewRepository.findById(interviewId)
@@ -89,22 +88,12 @@ public class AiChatMessageService {
 				throw new CustomException(ErrorCode.INTERVIEW_COMPLETED);
 			}
 
-			// 5개 질문 제한 체크
-			if (interview.getCurrentQuestionCount() > 5) {
-				throw new CustomException(ErrorCode.INTERVIEW_COMPLETED);
-			}
-			shouldGenerateNextQuestion = interview.getCurrentQuestionCount() < 5;
 		}
 
 		MessageType messageType = interviewId != null ? MessageType.INTERVIEW : MessageType.NORMAL;
 		AiChatInterview finalInterview = interview;
 
 		saveUserMessage(room, content, messageType, interview);
-
-		if (interviewId != null && !shouldGenerateNextQuestion) {
-			SecurityContextHolder.clearContext();
-			return Flux.empty();
-		}
 
 		if (interviewId != null) {
 			AiOcrResult ocrResult = aiOcrResultRepository.findByRoomId(roomId).orElse(null);
