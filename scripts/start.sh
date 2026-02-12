@@ -54,14 +54,13 @@ echo "> Spring Profile: $SPRING_PROFILE"
 
 echo "> Parameter Store 경로: $PARAM_PATH"
 
-# Parameter Store에서 파라미터 가져와서 메모리 기반 임시 .env 파일 생성
+# Parameter Store에서 파라미터 가져와서 임시 .env 파일 생성
 # --recursive: 하위 경로의 모든 파라미터 가져오기
 # --with-decryption: SecureString 타입 파라미터 복호화
 echo "> Parameter Store에서 파라미터 가져오는 중..."
 
-# /dev/shm (메모리 기반 파일시스템)에 임시 .env 파일 생성
-# 디스크에 저장되지 않고 메모리에만 존재
-ENV_FILE="/dev/shm/devths-env-$$"
+# 임시 .env 파일 생성
+ENV_FILE="$REPOSITORY/.env"
 rm -f "$ENV_FILE"
 
 # 파라미터 개수 카운트
@@ -71,9 +70,22 @@ PARAM_COUNT=0
 while IFS=$'\t' read -r name value; do
     # 파라미터 이름에서 경로 제거하고 환경 변수 이름 추출
     # 예: /Dev/BE/DB_HOST -> DB_HOST
+
+    # 1. 이름이나 값이 아예 없는 행은 무시 (공백 제거 후 체크)
+    if [ -z "${name// /}" ]; then
+        continue
+    fi
+
+    # 2. 파라미터 이름에서 경로 제거 (예: /Dev/BE/DB_HOST -> DB_HOST)
     env_name=${name#$PARAM_PATH/}
 
-    # 메모리 기반 .env 파일에 저장
+    # 3. [방어] 경로가 제거되지 않았거나(경로 자체가 이름인 경우), 변수명이 비어있으면 스킵
+    if [ -z "$env_name" ] || [ "$env_name" == "$name" ]; then
+        echo "⏭️  유효하지 않은 항목 건너뜀: $name"
+        continue
+    fi
+
+    # .env 파일에 저장
     echo "$env_name=$value" >> "$ENV_FILE"
 
     PARAM_COUNT=$((PARAM_COUNT + 1))
@@ -88,7 +100,7 @@ done < <(aws ssm get-parameters-by-path \
 # SPRING_PROFILES_ACTIVE도 .env 파일에 추가
 echo "SPRING_PROFILES_ACTIVE=$SPRING_PROFILE" >> "$ENV_FILE"
 
-echo "> 환경 변수 $PARAM_COUNT 개 로드 완료 (메모리 기반)"
+echo "> 환경 변수 $PARAM_COUNT 개 로드 완료"
 
 if [ "$PARAM_COUNT" -eq 0 ]; then
     echo "❌ [Error] Parameter Store에서 파라미터를 가져오지 못했습니다."
@@ -120,17 +132,5 @@ if [ ! -f "$REPOSITORY/docker-compose.yml" ]; then
 fi
 
 # docker-compose 실행 (detached mode)
-# 메모리 기반 .env 파일을 --env-file로 전달
-cd "$REPOSITORY"
-
-# 임시 심볼릭 링크 생성 (docker-compose는 현재 디렉토리의 .env를 자동으로 참조)
-ln -sf "$ENV_FILE" "$REPOSITORY/.env"
-
+# .env 파일의 환경 변수들을 컨테이너에 주입
 docker compose up -d
-
-# 컨테이너 시작 완료 후 심볼릭 링크와 메모리 파일 즉시 삭제 (보안)
-echo "> 임시 환경 변수 파일 삭제"
-rm -f "$REPOSITORY/.env"
-rm -f "$ENV_FILE"
-
-echo "> 배포 완료. Health Check 대기 중..."
