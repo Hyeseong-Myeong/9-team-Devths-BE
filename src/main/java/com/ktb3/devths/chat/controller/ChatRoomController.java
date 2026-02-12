@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -77,6 +78,20 @@ public class ChatRoomController {
 		);
 
 		return ResponseEntity.ok(ApiResponse.success("채팅방 정보가 성공적으로 수정되었습니다.", response));
+	}
+
+	@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204")
+	@DeleteMapping("/{roomId}")
+	public ResponseEntity<Void> leaveChatRoom(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@PathVariable Long roomId
+	) {
+		chatRoomService.leaveChatRoom(
+			userPrincipal.getUserId(),
+			roomId
+		);
+
+		return ResponseEntity.noContent().build();
 	}
 
 	@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201")

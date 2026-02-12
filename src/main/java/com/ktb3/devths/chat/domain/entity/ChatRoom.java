@@ -69,4 +69,13 @@ public class ChatRoom {
 
 	@Column(name = "deleted_at")
 	private LocalDateTime deletedAt;
+
+	public void decrementCount() {
+		this.currentCount = Math.max(0, this.currentCount - 1);
+	}
+
+	public void softDelete() {
+		this.isDeleted = true;
+		this.deletedAt = LocalDateTime.now();
+	}
 }

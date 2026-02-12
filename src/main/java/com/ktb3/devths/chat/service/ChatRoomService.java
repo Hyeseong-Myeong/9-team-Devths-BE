@@ -221,6 +221,22 @@ public class ChatRoomService {
 		return new ChatRoomUpdateResponse(chatRoom.getId(), member.getRoomName());
 	}
 
+	@Transactional
+	public void leaveChatRoom(Long userId, Long roomId) {
+		ChatRoom chatRoom = chatRoomRepository.findByIdAndIsDeletedFalse(roomId)
+			.orElseThrow(() -> new CustomException(ErrorCode.CHATROOM_NOT_FOUND));
+
+		ChatMember member = chatMemberRepository.findByChatRoomIdAndUserId(roomId, userId)
+			.orElseThrow(() -> new CustomException(ErrorCode.CHATROOM_ACCESS_DENIED));
+
+		chatMemberRepository.delete(member);
+		chatRoom.decrementCount();
+
+		if (chatRoom.getCurrentCount() <= 0) {
+			chatRoom.softDelete();
+		}
+	}
+
 	private String generateUniqueInviteCode() {
 		SecureRandom random = new SecureRandom();
 		for (int attempt = 0; attempt < MAX_INVITE_CODE_RETRY; attempt++) {
