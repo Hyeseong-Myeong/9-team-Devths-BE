@@ -90,7 +90,7 @@ public class FastApiClient {
 	}
 
 	public Flux<String> streamChatResponse(FastApiChatRequest request) {
-		rateLimitService.consumeToken(request.userId(), ApiType.FASTAPI_ANALYSIS);
+		rateLimitService.consumeToken(request.userId(), ApiType.FASTAPI_CHAT);
 
 		String url = fastApiProperties.getBaseUrl() + "/ai/chat";
 		return webClient.post()
@@ -118,7 +118,7 @@ public class FastApiClient {
 	}
 
 	public Flux<String> streamInterviewEvaluation(FastApiInterviewEvaluationRequest request) {
-		rateLimitService.consumeToken(request.value().userId(), ApiType.FASTAPI_ANALYSIS);
+		rateLimitService.consumeToken(request.value().userId(), ApiType.FASTAPI_EVALUATION);
 
 		String url = fastApiProperties.getBaseUrl() + "/ai/evaluation/analyze";
 

@@ -105,6 +105,12 @@ ratelimit:
   fastapi:
     bucket-capacity: ${RATELIMIT_FASTAPI:10}
     enabled: true
+  fastapi-chat:
+    bucket-capacity: ${RATELIMIT_FASTAPI_CHAT:500}
+    enabled: true
+  fastapi-evaluation:
+    bucket-capacity: ${RATELIMIT_FASTAPI_EVALUATION:30}
+    enabled: true
   google-oauth:
     bucket-capacity: ${RATELIMIT_GOOGLE_OAUTH:50}
     enabled: true

@@ -9,6 +9,8 @@ public enum ApiType {
 	GOOGLE_CALENDAR("google.calendar", "Google Calendar API (쓰기 작업)"),
 	GOOGLE_TASKS("google.tasks", "Google Tasks API (쓰기 작업)"),
 	FASTAPI_ANALYSIS("fastapi.analysis", "FastAPI 분석 요청"),
+	FASTAPI_CHAT("fastapi.chat", "FastAPI 챗봇 메시지"),
+	FASTAPI_EVALUATION("fastapi.evaluation", "FastAPI 면접 평가"),
 	GOOGLE_OAUTH("google.oauth", "Google OAuth2 로그인"),
 	AUTH_TOKEN("auth.token", "인증/토큰 처리"),
 	FILE_PRESIGNED("file.presigned", "파일 Presigned URL 발급"),

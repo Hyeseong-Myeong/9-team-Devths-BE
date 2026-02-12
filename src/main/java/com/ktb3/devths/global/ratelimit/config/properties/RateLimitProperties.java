@@ -17,6 +17,8 @@ public class RateLimitProperties {
 	private GoogleCalendarLimit googleCalendar = new GoogleCalendarLimit();
 	private GoogleTasksLimit googleTasks = new GoogleTasksLimit();
 	private FastApiLimit fastapi = new FastApiLimit();
+	private FastApiChatLimit fastapiChat = new FastApiChatLimit();
+	private FastApiEvaluationLimit fastapiEvaluation = new FastApiEvaluationLimit();
 	private GoogleOAuthLimit googleOauth = new GoogleOAuthLimit();
 	private AuthTokenLimit authToken = new AuthTokenLimit();
 	private FilePresignedLimit filePresigned = new FilePresignedLimit();
@@ -48,6 +50,20 @@ public class RateLimitProperties {
 	@Setter
 	public static class FastApiLimit {
 		private int bucketCapacity = 10;
+		private boolean enabled = true;
+	}
+
+	@Getter
+	@Setter
+	public static class FastApiChatLimit {
+		private int bucketCapacity = 500;
+		private boolean enabled = true;
+	}
+
+	@Getter
+	@Setter
+	public static class FastApiEvaluationLimit {
+		private int bucketCapacity = 30;
 		private boolean enabled = true;
 	}
 
