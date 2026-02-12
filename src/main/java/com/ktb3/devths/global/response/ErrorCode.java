@@ -19,6 +19,7 @@ public enum ErrorCode {
 	INTERVIEW_COMPLETED_EVALUATION_REQUIRED(HttpStatus.BAD_REQUEST, "면접 질문 5개가 완료되었습니다. 평가를 진행해주세요."),
 	SELF_FOLLOW_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "본인을 팔로우할 수 없습니다"),
 	SELF_UNFOLLOW_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "본인을 언팔로우할 수 없습니다"),
+	SELF_CHAT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "본인과의 채팅방은 생성할 수 없습니다"),
 
 	// 401 Unauthorized
 	UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다"),
