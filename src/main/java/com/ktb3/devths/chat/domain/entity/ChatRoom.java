@@ -78,4 +78,9 @@ public class ChatRoom {
 		this.isDeleted = true;
 		this.deletedAt = LocalDateTime.now();
 	}
+
+	public void updateLastMessage(String content, LocalDateTime at) {
+		this.lastMessageContent = content;
+		this.lastMessageAt = at;
+	}
 }

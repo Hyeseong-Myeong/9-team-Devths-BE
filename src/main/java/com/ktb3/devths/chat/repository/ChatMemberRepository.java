@@ -35,4 +35,7 @@ public interface ChatMemberRepository extends JpaRepository<ChatMember, Long> {
 		@Param("cursor") LocalDateTime cursor,
 		Pageable pageable
 	);
+
+	@Query("SELECT m.user.id FROM ChatMember m WHERE m.chatRoom.id = :roomId")
+	List<Long> findUserIdsByChatRoomId(@Param("roomId") Long roomId);
 }

@@ -33,6 +33,7 @@ public enum ErrorCode {
 	REFRESH_TOKEN_REUSED(HttpStatus.UNAUTHORIZED, "이미 사용된 리프레시 토큰입니다"),
 	GOOGLE_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Google 토큰이 만료되었습니다"),
 	GOOGLE_TOKEN_REFRESH_FAILED(HttpStatus.UNAUTHORIZED, "Google 토큰 갱신에 실패했습니다"),
+	WEBSOCKET_AUTH_FAILED(HttpStatus.UNAUTHORIZED, "WebSocket 인증에 실패했습니다"),
 
 	// 403 Forbidden
 	ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근 권한이 없습니다"),
