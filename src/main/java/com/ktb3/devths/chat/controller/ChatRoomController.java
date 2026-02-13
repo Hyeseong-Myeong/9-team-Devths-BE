@@ -17,10 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ktb3.devths.chat.dto.request.ChatRoomUpdateRequest;
 import com.ktb3.devths.chat.dto.request.PrivateChatRoomCreateRequest;
+import com.ktb3.devths.chat.dto.response.ChatMessageListResponse;
 import com.ktb3.devths.chat.dto.response.ChatRoomDetailResponse;
 import com.ktb3.devths.chat.dto.response.ChatRoomListResponse;
 import com.ktb3.devths.chat.dto.response.ChatRoomUpdateResponse;
 import com.ktb3.devths.chat.dto.response.PrivateChatRoomCreateResponse;
+import com.ktb3.devths.chat.service.ChatMessageService;
 import com.ktb3.devths.chat.service.ChatRoomService;
 import com.ktb3.devths.global.response.ApiResponse;
 import com.ktb3.devths.global.security.UserPrincipal;
@@ -34,6 +36,24 @@ import lombok.RequiredArgsConstructor;
 public class ChatRoomController {
 
 	private final ChatRoomService chatRoomService;
+	private final ChatMessageService chatMessageService;
+
+	@GetMapping("/{roomId}/messages")
+	public ResponseEntity<ApiResponse<ChatMessageListResponse>> getChatMessages(
+		@AuthenticationPrincipal UserPrincipal userPrincipal,
+		@PathVariable Long roomId,
+		@RequestParam(required = false) Integer size,
+		@RequestParam(required = false) Long lastId
+	) {
+		ChatMessageListResponse response = chatMessageService.getChatMessages(
+			userPrincipal.getUserId(),
+			roomId,
+			size,
+			lastId
+		);
+
+		return ResponseEntity.ok(ApiResponse.success("대화 이력을 성공적으로 불러왔습니다.", response));
+	}
 
 	@GetMapping
 	public ResponseEntity<ApiResponse<ChatRoomListResponse>> getChatRoomList(

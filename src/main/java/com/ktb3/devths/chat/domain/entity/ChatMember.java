@@ -70,4 +70,8 @@ public class ChatMember {
 	public void updateAlarmOn(boolean isAlarmOn) {
 		this.isAlarmOn = isAlarmOn;
 	}
+
+	public void updateLastReadMsgId(Long msgId) {
+		this.lastReadMsgId = msgId;
+	}
 }
