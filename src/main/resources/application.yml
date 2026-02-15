@@ -156,4 +156,4 @@ logging:
   pattern:
     level: "%5p [traceId=%X{traceId}]"
   file:
-    name: ${LOG_FILE_DIRECTORY:./log}/application.log
+    name: /app/log/application.log

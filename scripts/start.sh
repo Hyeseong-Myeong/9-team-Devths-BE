@@ -125,14 +125,25 @@ aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS 
 echo "> Docker 이미지 Pull"
 docker pull "$FULL_IMAGE"
 
-# 5. 기존 컨테이너 정리 (있다면)
+# 5. 기존 컨테이너 전체 정리
 echo "> 기존 컨테이너 정리"
-if docker ps -a --filter "name=devths-be" --format "{{.Names}}" | grep -q "devths-be"; then
-    docker stop devths-be || true
-    docker rm devths-be || true
+if [ -f "$REPOSITORY/docker-compose.yml" ]; then
+    docker compose down || true
 fi
 
-# 6. docker-compose로 컨테이너 실행
+# 6. 로그 디렉토리 초기화
+# Promtail 컨테이너가 재생성되면 positions.yaml이 초기화되어 기존 로그를 재전송할 수 있으므로 삭제 후 재생성
+LOG_DIR=$(grep '^LOG_FILE_DIRECTORY=' "$ENV_FILE" | cut -d'=' -f2)
+if [ -z "$LOG_DIR" ]; then
+    echo "❌ [Error] LOG_FILE_DIRECTORY가 .env에 없습니다."
+    exit 1
+fi
+echo "> 로그 디렉토리 초기화: $LOG_DIR"
+sudo rm -rf "$LOG_DIR"
+mkdir -p "$LOG_DIR"
+chmod 755 "$LOG_DIR"
+
+# 7. docker-compose로 컨테이너 실행
 echo "> Docker Compose로 애플리케이션 시작 (환경 변수 주입)"
 if [ ! -f "$REPOSITORY/docker-compose.yml" ]; then
     echo "❌ [Error] docker-compose.yml 파일을 찾을 수 없습니다."

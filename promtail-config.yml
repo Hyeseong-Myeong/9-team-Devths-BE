@@ -20,7 +20,7 @@ scrape_configs:
         labels:
           job: spring
           application: devths
-          __path__: ${LOG_FILE_DIRECTORY}/*.log
+          __path__: /app/log/*.log
 
     pipeline_stages:
       # JSON 로그 파싱
