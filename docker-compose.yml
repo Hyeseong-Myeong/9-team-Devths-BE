@@ -8,6 +8,8 @@ services:
       - .env
     ports:
       - '8080:8080'
+    volumes:
+      - app-logs:${LOG_FILE_DIRECTORY:-/app/logs}
     networks:
       - devths-network
     healthcheck:
@@ -27,10 +29,14 @@ services:
     image: grafana/promtail:latest
     container_name: devths-be-promtail
     restart: unless-stopped
+    environment:
+      - LOG_FILE_DIRECTORY=${LOG_FILE_DIRECTORY:-/app/logs}
+      - LOKI_URL=${LOKI_URL}
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - ./promtail-config.yml:/etc/promtail/config.yml:ro
-    command: -config.file=/etc/promtail/config.yml
+      - app-logs:${LOG_FILE_DIRECTORY:-/app/logs}:ro
+    command: -config.file=/etc/promtail/config.yml --config.expand-env=true
     networks:
       - devths-network
     healthcheck:
@@ -44,6 +50,9 @@ services:
       options:
         max-size: '5m'
         max-file: '2'
+
+volumes:
+  app-logs:
 
 networks:
   devths-network:

@@ -4,7 +4,7 @@ server:
 
 # 1. 로그를 받을 Loki 주소
 clients:
-  - url: http://monitor.internal:3100/loki/api/v1/push
+  - url: ${LOKI_URL}
 
 # 2. 로그를 어디까지 읽었는지 저장하는 파일
 positions:
@@ -20,7 +20,7 @@ scrape_configs:
         labels:
           job: spring
           application: devths
-          __path__: /var/log/*.log
+          __path__: ${LOG_FILE_DIRECTORY}/*.log
 
     pipeline_stages:
       # JSON 로그 파싱
