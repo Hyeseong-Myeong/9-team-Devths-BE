@@ -230,11 +230,11 @@ public class ChatMessageService {
 		}
 
 		String content = isDeleted ? null : (isImage ? null : message.getContent());
-		String s3Key = isDeleted ? null : (isImage ? message.getContent() : null);
+		String imageUrl = isDeleted ? null : (isImage ? s3StorageService.getPublicUrl(message.getContent()) : null);
 
 		return new ChatMessageResponse(
 			message.getId(), senderDto, message.getType().name(),
-			content, s3Key, message.getCreatedAt(), isDeleted
+			content, imageUrl, message.getCreatedAt(), isDeleted
 		);
 	}
 
@@ -257,7 +257,7 @@ public class ChatMessageService {
 			senderDto,
 			message.getType().name(),
 			isImage ? null : message.getContent(),
-			isImage ? message.getContent() : null,
+			isImage ? s3StorageService.getPublicUrl(message.getContent()) : null,
 			message.getCreatedAt(),
 			false
 		);
