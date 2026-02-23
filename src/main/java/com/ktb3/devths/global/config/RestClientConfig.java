@@ -17,10 +17,11 @@ import lombok.RequiredArgsConstructor;
 public class RestClientConfig {
 
 	private final FastApiProperties fastApiProperties;
+	private final RestClient.Builder restClientBuilder;  // Spring Boot 자동 설정된 Builder 주입 (trace context 전파 포함)
 
 	@Bean
 	public RestClient restClient() {
-		return RestClient.builder()
+		return restClientBuilder
 			.requestFactory(clientHttpRequestFactory())
 			.build();
 	}

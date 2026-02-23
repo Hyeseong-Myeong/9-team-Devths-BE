@@ -19,7 +19,7 @@ scrape_configs:
           - localhost
         labels:
           job: spring
-          application: devths
+          application: be-backend
           __path__: /app/log/*.log
 
     pipeline_stages:

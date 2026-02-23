@@ -19,13 +19,14 @@ import reactor.netty.http.client.HttpClient;
 public class WebClientConfig {
 
 	private final FastApiProperties fastApiProperties;
+	private final WebClient.Builder webClientBuilder;  // Spring Boot 자동 설정된 Builder 주입 (trace context 전파 포함)
 
 	@Bean
 	public WebClient webClient() {
 		HttpClient httpClient = HttpClient.create()
 			.responseTimeout(Duration.ofSeconds(60));
 
-		return WebClient.builder()
+		return webClientBuilder
 			.baseUrl(fastApiProperties.getBaseUrl())
 			.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
 			.clientConnector(new ReactorClientHttpConnector(httpClient))

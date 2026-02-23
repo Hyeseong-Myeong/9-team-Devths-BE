@@ -1,4 +1,7 @@
 spring:
+  application:
+    name: devths-be
+
   datasource:
     url: ${DB_URL_V2}
     username: ${DB_USERNAME}
@@ -90,6 +93,17 @@ management:
   tracing:
     sampling:
       probability: 1.0  # 모든 요청 추적 (운영 환경에서는 0.1 정도로 조정)
+    propagation:
+      type: w3c  # W3C Trace Context 표준 사용 (traceparent, tracestate 헤더)
+      produce: w3c  # 외부로 나가는 요청에 W3C 헤더 추가
+      consume: w3c  # 외부에서 들어오는 W3C 헤더 읽기
+    enabled: true
+    baggage:
+      correlation:
+        enabled: true
+  otlp:
+    tracing:
+      endpoint: ${OTLP_ENDPOINT}
   metrics:
     distribution:
       percentiles-histogram:
