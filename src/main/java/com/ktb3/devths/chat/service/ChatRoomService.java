@@ -3,7 +3,9 @@ package com.ktb3.devths.chat.service;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +30,9 @@ import com.ktb3.devths.chat.repository.ChatRoomRepository;
 import com.ktb3.devths.global.exception.CustomException;
 import com.ktb3.devths.global.response.ErrorCode;
 import com.ktb3.devths.global.storage.domain.constant.RefType;
+import com.ktb3.devths.global.storage.domain.entity.S3Attachment;
 import com.ktb3.devths.global.storage.repository.S3AttachmentRepository;
+import com.ktb3.devths.global.storage.service.S3StorageService;
 import com.ktb3.devths.global.util.LogSanitizer;
 import com.ktb3.devths.user.domain.entity.User;
 import com.ktb3.devths.user.repository.UserRepository;
@@ -53,6 +57,7 @@ public class ChatRoomService {
 	private final ChatMemberRepository chatMemberRepository;
 	private final ChatMessageRepository chatMessageRepository;
 	private final S3AttachmentRepository s3AttachmentRepository;
+	private final S3StorageService s3StorageService;
 	private final UserRepository userRepository;
 
 	@Transactional(readOnly = true)
@@ -78,12 +83,48 @@ public class ChatRoomService {
 			? members.subList(0, pageSize)
 			: members;
 
+		Map<Long, String> profileImageMap = Map.of();
+		if (roomType == ChatRoomTypes.PRIVATE) {
+			List<Long> roomIds = actualMembers.stream()
+				.map(m -> m.getChatRoom().getId())
+				.toList();
+
+			Map<Long, Long> roomToOtherUserMap = chatPrivateRoomRepository.findByRoomIdIn(roomIds).stream()
+				.collect(Collectors.toMap(
+					pr -> pr.getRoom().getId(),
+					pr -> pr.getUser1().getId().equals(userId)
+						? pr.getUser2().getId()
+						: pr.getUser1().getId()
+				));
+
+			List<Long> otherUserIds = roomToOtherUserMap.values().stream().distinct().toList();
+			if (!otherUserIds.isEmpty()) {
+				Map<Long, String> userProfileMap = s3AttachmentRepository
+					.findByRefTypeAndRefIdInAndIsDeletedFalse(RefType.USER, otherUserIds)
+					.stream()
+					.collect(Collectors.toMap(
+						S3Attachment::getRefId,
+						a -> s3StorageService.getPublicUrl(a.getS3Key()),
+						(existing, replacement) -> existing
+					));
+
+				profileImageMap = roomToOtherUserMap.entrySet().stream()
+					.filter(e -> userProfileMap.containsKey(e.getValue()))
+					.collect(Collectors.toMap(
+						Map.Entry::getKey,
+						e -> userProfileMap.get(e.getValue())
+					));
+			}
+		}
+
+		Map<Long, String> finalProfileImageMap = profileImageMap;
 		List<ChatRoomSummaryResponse> chatRooms = actualMembers.stream()
 			.map(member -> {
 				ChatRoom room = member.getChatRoom();
 				return new ChatRoomSummaryResponse(
 					room.getId(),
 					member.getRoomName(),
+					finalProfileImageMap.get(room.getId()),
 					room.getLastMessageContent(),
 					room.getLastMessageAt(),
 					room.getCurrentCount(),
