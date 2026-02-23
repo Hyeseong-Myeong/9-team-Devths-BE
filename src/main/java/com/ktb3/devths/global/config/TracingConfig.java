@@ -2,7 +2,12 @@ package com.ktb3.devths.global.config;
 
 import java.util.List;
 
+import javax.sql.DataSource;
+
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.actuate.autoconfigure.tracing.ConditionalOnEnabledTracing;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.server.observation.ServerRequestObservationContext;
@@ -12,6 +17,8 @@ import org.springframework.util.PathMatcher;
 import io.micrometer.observation.ObservationPredicate;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.aop.ObservedAspect;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.jdbc.datasource.JdbcTelemetry;
 
 @Configuration
 @ConditionalOnEnabledTracing
@@ -44,5 +51,22 @@ public class TracingConfig {
 	@Bean
 	public ObservedAspect observedAspect(ObservationRegistry registry) {
 		return new ObservedAspect(registry);
+	}
+
+	/**
+	 * JDBC DataSource를 OpenTelemetry로 wrap하여 DB 쿼리 추적
+	 */
+	@Bean
+	@ConditionalOnClass(name = "io.opentelemetry.instrumentation.jdbc.datasource.JdbcTelemetry")
+	public BeanPostProcessor dataSourceInstrumentationBeanPostProcessor(OpenTelemetry openTelemetry) {
+		return new BeanPostProcessor() {
+			@Override
+			public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+				if (bean instanceof DataSource) {
+					return JdbcTelemetry.create(openTelemetry).wrap((DataSource)bean);
+				}
+				return bean;
+			}
+		};
 	}
 }
