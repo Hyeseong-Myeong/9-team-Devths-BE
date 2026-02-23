@@ -101,6 +101,11 @@ fastapi:
   poll-interval: 2000
   max-poll-attempts: 50
 
+chat:
+  websocket:
+    heartbeat-send-interval-ms: 10000
+    heartbeat-receive-interval-ms: 10000
+
 ratelimit:
   backend: ${RATELIMIT_BACKEND:in-memory}
   redis:
