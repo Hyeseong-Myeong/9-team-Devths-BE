@@ -82,9 +82,7 @@ public class FastApiClient {
 			}
 
 			return response;
-
 		} catch (RestClientException e) {
-			log.error("FastAPI 작업 상태 조회 실패: taskId={}", taskId, e);
 			throw new CustomException(ErrorCode.FASTAPI_CONNECTION_FAILED);
 		}
 	}
