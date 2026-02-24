@@ -23,4 +23,7 @@ public interface AiChatMessageRepository extends JpaRepository<AiChatMessage, Lo
 		@Param("lastId") Long lastId,
 		Pageable pageable
 	);
+
+	@Query("SELECT m FROM AiChatMessage m WHERE m.interview.id = :interviewId ORDER BY m.id ASC")
+	List<AiChatMessage> findByInterviewIdOrderByIdAsc(@Param("interviewId") Long interviewId);
 }

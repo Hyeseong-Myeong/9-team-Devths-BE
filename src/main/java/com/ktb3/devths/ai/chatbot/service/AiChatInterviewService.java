@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -119,10 +118,7 @@ public class AiChatInterviewService {
 		}
 		AiChatRoom room = interview.getRoom();
 
-		List<AiChatMessage> messages = aiChatMessageRepository.findAll().stream()
-			.filter(msg -> msg.getInterview() != null && msg.getInterview().getId().equals(interviewId))
-			.sorted((a, b) -> a.getId().compareTo(b.getId()))
-			.collect(Collectors.toList());
+		List<AiChatMessage> messages = aiChatMessageRepository.findByInterviewIdOrderByIdAsc(interviewId);
 
 		if (messages.isEmpty()) {
 			throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND);
