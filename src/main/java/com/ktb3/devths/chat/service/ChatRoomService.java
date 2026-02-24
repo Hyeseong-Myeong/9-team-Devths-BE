@@ -240,7 +240,7 @@ public class ChatRoomService {
 			.stream()
 			.map(attachment -> new ChatRoomDetailResponse.RecentImage(
 				attachment.getId(),
-				attachment.getS3Key(),
+				s3StorageService.getPublicUrl(attachment.getS3Key()),
 				attachment.getOriginalName(),
 				attachment.getCreatedAt()
 			))
