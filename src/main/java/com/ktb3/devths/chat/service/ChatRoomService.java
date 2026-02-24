@@ -256,20 +256,32 @@ public class ChatRoomService {
 		List<ChatRoomDetailResponse.RecentImage> recentImages = s3AttachmentRepository
 			.findByRefTypeAndRefIdAndIsDeletedFalseOrderByCreatedAtDesc(RefType.CHATROOM, roomId, imagePage)
 			.stream()
-			.map(attachment -> new ChatRoomDetailResponse.RecentImage(
-				attachment.getId(),
-				s3StorageService.getPublicUrl(attachment.getS3Key()),
-				attachment.getOriginalName(),
-				attachment.getCreatedAt()
-			))
-			.toList();
+				.map(attachment -> new ChatRoomDetailResponse.RecentImage(
+					attachment.getId(),
+					s3StorageService.getPublicUrl(attachment.getS3Key()),
+					attachment.getOriginalName(),
+					attachment.getCreatedAt()
+				))
+				.toList();
+
+		String roomDisplayName = member.getRoomName();
+		if (chatRoom.getType() == ChatRoomTypes.PRIVATE) {
+			roomDisplayName = chatPrivateRoomRepository.findById(chatRoom.getId())
+				.map(privateRoom -> {
+					User otherUser = privateRoom.getUser1().getId().equals(userId)
+						? privateRoom.getUser2()
+						: privateRoom.getUser1();
+					return otherUser.getNickname();
+				})
+				.orElse(member.getRoomName());
+		}
 
 		return new ChatRoomDetailResponse(
 			chatRoom.getId(),
 			chatRoom.getType().name(),
 			chatRoom.getTitle(),
 			member.isAlarmOn(),
-			member.getRoomName(),
+			roomDisplayName,
 			chatRoom.getInviteCode(),
 			chatRoom.getCreatedAt(),
 			recentImages
