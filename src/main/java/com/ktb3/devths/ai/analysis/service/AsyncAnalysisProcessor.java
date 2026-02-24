@@ -164,8 +164,6 @@ public class AsyncAnalysisProcessor {
 				throw new CustomException(ErrorCode.ANALYSIS_FAILED);
 			} catch (CustomException e) {
 				if (attempt < maxAttempts - 1) {
-					log.warn("FastAPI 작업 조회 실패 (재시도 예정): taskId={}, attempt={}/{}",
-						taskId, attempt + 1, maxAttempts);
 					try {
 						Thread.sleep(pollInterval);
 					} catch (InterruptedException ie) {
@@ -173,7 +171,6 @@ public class AsyncAnalysisProcessor {
 						throw new CustomException(ErrorCode.ANALYSIS_FAILED);
 					}
 				} else {
-					log.error("FastAPI 작업 조회 최종 실패: taskId={}", taskId);
 					throw e;
 				}
 			}
@@ -234,7 +231,6 @@ public class AsyncAnalysisProcessor {
 
 	protected void handleAnalysisFailure(Long taskId, String reason) {
 		asyncTaskService.markAsFailed(taskId, reason);
-		log.error("분석 실패 처리 완료: taskId={}, reason={}", taskId, LogSanitizer.sanitize(reason));
 	}
 
 	/**
