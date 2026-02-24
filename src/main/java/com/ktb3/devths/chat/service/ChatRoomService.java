@@ -84,6 +84,7 @@ public class ChatRoomService {
 			: members;
 
 		Map<Long, String> profileImageMap = Map.of();
+		Map<Long, String> roomTitleMap = Map.of();
 		if (roomType == ChatRoomTypes.PRIVATE) {
 			List<Long> roomIds = actualMembers.stream()
 				.map(m -> m.getChatRoom().getId())
@@ -99,6 +100,19 @@ public class ChatRoomService {
 
 			List<Long> otherUserIds = roomToOtherUserMap.values().stream().distinct().toList();
 			if (!otherUserIds.isEmpty()) {
+				Map<Long, String> userNicknameMap = userRepository.findAllById(otherUserIds).stream()
+					.collect(Collectors.toMap(
+						User::getId,
+						User::getNickname
+					));
+
+				roomTitleMap = roomToOtherUserMap.entrySet().stream()
+					.filter(e -> userNicknameMap.containsKey(e.getValue()))
+					.collect(Collectors.toMap(
+						Map.Entry::getKey,
+						e -> userNicknameMap.get(e.getValue())
+					));
+
 				Map<Long, String> userProfileMap = s3AttachmentRepository
 					.findByRefTypeAndRefIdInAndIsDeletedFalse(RefType.USER, otherUserIds)
 					.stream()
@@ -118,12 +132,16 @@ public class ChatRoomService {
 		}
 
 		Map<Long, String> finalProfileImageMap = profileImageMap;
+		Map<Long, String> finalRoomTitleMap = roomTitleMap;
 		List<ChatRoomSummaryResponse> chatRooms = actualMembers.stream()
 			.map(member -> {
 				ChatRoom room = member.getChatRoom();
+				String title = roomType == ChatRoomTypes.PRIVATE
+					? finalRoomTitleMap.getOrDefault(room.getId(), member.getRoomName())
+					: member.getRoomName();
 				return new ChatRoomSummaryResponse(
 					room.getId(),
-					member.getRoomName(),
+					title,
 					finalProfileImageMap.get(room.getId()),
 					room.getLastMessageContent(),
 					room.getLastMessageAt(),
