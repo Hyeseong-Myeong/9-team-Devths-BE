@@ -57,24 +57,14 @@ public class AiChatRoomService {
 
 	@Transactional
 	public void deleteChatRoom(Long userId, Long roomId) {
-		AiChatRoom chatRoom = aiChatRoomRepository.findByIdAndIsDeletedFalse(roomId)
-			.orElseThrow(() -> new CustomException(ErrorCode.AI_CHATROOM_NOT_FOUND));
-
-		if (!chatRoom.getUser().getId().equals(userId)) {
-			throw new CustomException(ErrorCode.AI_CHATROOM_ACCESS_DENIED);
-		}
+		AiChatRoom chatRoom = getOwnedRoomOrThrow(userId, roomId);
 
 		chatRoom.delete();
 	}
 
 	@Transactional
 	public AiChatMessageListResponse getChatMessages(Long userId, Long roomId, Integer size, Long lastId) {
-		AiChatRoom chatRoom = aiChatRoomRepository.findByIdAndIsDeletedFalse(roomId)
-			.orElseThrow(() -> new CustomException(ErrorCode.AI_CHATROOM_NOT_FOUND));
-
-		if (!chatRoom.getUser().getId().equals(userId)) {
-			throw new CustomException(ErrorCode.AI_CHATROOM_ACCESS_DENIED);
-		}
+		AiChatRoom chatRoom = getOwnedRoomOrThrow(userId, roomId);
 
 		int pageSize = (size == null || size <= 0) ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
 		Pageable pageable = PageRequest.of(0, pageSize + 1);
@@ -104,5 +94,17 @@ public class AiChatRoomService {
 			: aiChatRoomRepository.findByUserIdAndNotDeletedAfterCursor(userId, lastId, pageable);
 
 		return AiChatRoomListResponse.of(chatRooms, pageSize);
+	}
+
+	@Transactional(readOnly = true)
+	public AiChatRoom getOwnedRoomOrThrow(Long userId, Long roomId) {
+		AiChatRoom room = aiChatRoomRepository.findByIdAndIsDeletedFalse(roomId)
+			.orElseThrow(() -> new CustomException(ErrorCode.AI_CHATROOM_NOT_FOUND));
+
+		if (!room.getUser().getId().equals(userId)) {
+			throw new CustomException(ErrorCode.AI_CHATROOM_ACCESS_DENIED);
+		}
+
+		return room;
 	}
 }
