@@ -3,6 +3,7 @@ package com.ktb3.devths.board.service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
@@ -55,6 +56,7 @@ public class PostService {
 	private final UserInterestRepository userInterestRepository;
 	private final S3AttachmentRepository s3AttachmentRepository;
 	private final S3StorageService s3StorageService;
+	private final PostDetailCacheService postDetailCacheService;
 
 	@Transactional
 	public PostCreateResponse createPost(Long userId, PostCreateRequest request) {
@@ -90,6 +92,7 @@ public class PostService {
 
 		unlinkExistingAttachments(postId);
 		linkAttachments(postId, userId, request.fileIds());
+		postDetailCacheService.evictByPostId(postId);
 
 		return PostUpdateResponse.from(post);
 	}
@@ -133,6 +136,11 @@ public class PostService {
 
 	@Transactional(readOnly = true)
 	public PostDetailResponse getPostDetail(Long userId, Long postId) {
+		Optional<PostDetailResponse> cached = postDetailCacheService.get(postId, userId);
+		if (cached.isPresent()) {
+			return cached.get();
+		}
+
 		Post post = postRepository.findByIdAndIsDeletedFalseWithUser(postId)
 			.orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
@@ -162,7 +170,11 @@ public class PostService {
 
 		boolean isLiked = likeRepository.existsByPostIdAndUserId(postId, userId);
 
-		return PostDetailResponse.of(post, attachments, postTags, authorInfo, isLiked, s3StorageService);
+		PostDetailResponse response = PostDetailResponse.of(post, attachments, postTags, authorInfo, isLiked,
+			s3StorageService);
+		postDetailCacheService.put(postId, userId, response);
+
+		return response;
 	}
 
 	@Transactional
@@ -175,6 +187,7 @@ public class PostService {
 		}
 
 		post.delete();
+		postDetailCacheService.evictByPostId(postId);
 	}
 
 	@Transactional
@@ -197,6 +210,7 @@ public class PostService {
 
 		likeRepository.save(like);
 		post.incrementLikeCount();
+		postDetailCacheService.evictByPostId(postId);
 
 		return PostLikeResponse.from(post);
 	}
@@ -215,6 +229,7 @@ public class PostService {
 
 		likeRepository.delete(like);
 		post.decrementLikeCount();
+		postDetailCacheService.evictByPostId(postId);
 	}
 
 	private List<Post> fetchPosts(String keyword, boolean hasKeyword, Long lastId, Pageable pageable) {

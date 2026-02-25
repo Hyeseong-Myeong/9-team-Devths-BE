@@ -120,6 +120,13 @@ chat:
     heartbeat-send-interval-ms: 10000
     heartbeat-receive-interval-ms: 10000
 
+app:
+  cache:
+    enabled: true
+    post-detail:
+      enabled: true
+      ttl: 60s
+
 ratelimit:
   backend: ${RATELIMIT_BACKEND:in-memory}
   redis:
