@@ -42,7 +42,7 @@ case $DEVELOP in
     PARAM_PATH="/Dev/BE"
     SPRING_PROFILE="dev"
     ;;
-  staging)
+  release/*|staging)
     PARAM_PATH="/Stg/BE"
     SPRING_PROFILE="stg"
     ;;
