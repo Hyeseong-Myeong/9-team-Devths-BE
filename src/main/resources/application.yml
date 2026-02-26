@@ -117,8 +117,8 @@ fastapi:
 
 chat:
   websocket:
-    heartbeat-send-interval-ms: 10000
-    heartbeat-receive-interval-ms: 10000
+    heartbeat-send-interval-ms: 25000
+    heartbeat-receive-interval-ms: 25000
 
 app:
   cache:

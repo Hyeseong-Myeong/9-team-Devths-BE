@@ -42,7 +42,12 @@ public class StompChannelInterceptor implements ChannelInterceptor {
 
 		switch (accessor.getCommand()) {
 			case CONNECT -> handleConnect(accessor);
-			case SUBSCRIBE -> handleSubscribe(accessor);
+			case SUBSCRIBE -> {
+				boolean allowed = handleSubscribe(accessor);
+				if (!allowed) {
+					return null;
+				}
+			}
 			default -> {
 			}
 		}
@@ -65,9 +70,11 @@ public class StompChannelInterceptor implements ChannelInterceptor {
 			Long userId = jwtTokenProvider.getUserIdFromToken(token);
 
 			Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
-			if (sessionAttributes != null) {
-				sessionAttributes.put("userId", userId);
+			if (sessionAttributes == null) {
+				log.warn("WebSocket CONNECT: sessionAttributes 없음");
+				throw new CustomException(ErrorCode.WEBSOCKET_AUTH_FAILED);
 			}
+			sessionAttributes.put("userId", userId);
 
 			log.info("WebSocket 인증 성공: userId={}", userId);
 		} catch (CustomException e) {
@@ -76,25 +83,26 @@ public class StompChannelInterceptor implements ChannelInterceptor {
 		}
 	}
 
-	private void handleSubscribe(StompHeaderAccessor accessor) {
+	private boolean handleSubscribe(StompHeaderAccessor accessor) {
 		String destination = accessor.getDestination();
 
 		if (destination == null) {
-			return;
+			return true;
 		}
 
 		if (destination.startsWith(CHATROOM_TOPIC_PREFIX)) {
-			handleChatroomSubscribe(accessor, destination);
+			return handleChatroomSubscribe(accessor, destination);
 		} else if (destination.startsWith(USER_TOPIC_PREFIX) && destination.endsWith(USER_TOPIC_SUFFIX)) {
-			handleUserNotificationSubscribe(accessor, destination);
+			return handleUserNotificationSubscribe(accessor, destination);
 		}
+		return true;
 	}
 
-	private void handleChatroomSubscribe(StompHeaderAccessor accessor, String destination) {
+	private boolean handleChatroomSubscribe(StompHeaderAccessor accessor, String destination) {
 		Long userId = getUserIdFromSession(accessor);
 		if (userId == null) {
-			log.warn("WebSocket SUBSCRIBE: 세션에 userId 없음");
-			throw new CustomException(ErrorCode.WEBSOCKET_AUTH_FAILED);
+			log.warn("WebSocket SUBSCRIBE 거부: 세션에 userId 없음");
+			return false;
 		}
 
 		String roomIdStr = destination.replace(CHATROOM_TOPIC_PREFIX, "");
@@ -102,24 +110,24 @@ public class StompChannelInterceptor implements ChannelInterceptor {
 		try {
 			roomId = Long.parseLong(roomIdStr);
 		} catch (NumberFormatException e) {
-			log.warn("WebSocket SUBSCRIBE: 잘못된 roomId={}", roomIdStr);
-			throw new CustomException(ErrorCode.INVALID_REQUEST);
+			log.warn("WebSocket SUBSCRIBE 거부: 잘못된 roomId={}", roomIdStr);
+			return false;
 		}
 
-		chatMemberRepository.findByChatRoomIdAndUserId(roomId, userId)
-			.orElseThrow(() -> {
-				log.warn("WebSocket SUBSCRIBE: 채팅방 멤버 아님 - roomId={}, userId={}", roomId, userId);
-				return new CustomException(ErrorCode.CHATROOM_ACCESS_DENIED);
-			});
+		if (chatMemberRepository.findByChatRoomIdAndUserId(roomId, userId).isEmpty()) {
+			log.warn("WebSocket SUBSCRIBE 거부: 채팅방 멤버 아님 - roomId={}, userId={}", roomId, userId);
+			return false;
+		}
 
 		log.info("WebSocket 구독 인증 성공: roomId={}, userId={}", roomId, userId);
+		return true;
 	}
 
-	private void handleUserNotificationSubscribe(StompHeaderAccessor accessor, String destination) {
+	private boolean handleUserNotificationSubscribe(StompHeaderAccessor accessor, String destination) {
 		Long sessionUserId = getUserIdFromSession(accessor);
 		if (sessionUserId == null) {
-			log.warn("WebSocket SUBSCRIBE: 세션에 userId 없음");
-			throw new CustomException(ErrorCode.WEBSOCKET_AUTH_FAILED);
+			log.warn("WebSocket SUBSCRIBE 거부: 세션에 userId 없음");
+			return false;
 		}
 
 		String pathUserId = destination.replace(USER_TOPIC_PREFIX, "").replace(USER_TOPIC_SUFFIX, "");
@@ -127,17 +135,18 @@ public class StompChannelInterceptor implements ChannelInterceptor {
 		try {
 			targetUserId = Long.parseLong(pathUserId);
 		} catch (NumberFormatException e) {
-			log.warn("WebSocket SUBSCRIBE: 잘못된 userId={}", pathUserId);
-			throw new CustomException(ErrorCode.INVALID_REQUEST);
+			log.warn("WebSocket SUBSCRIBE 거부: 잘못된 userId={}", pathUserId);
+			return false;
 		}
 
 		if (!sessionUserId.equals(targetUserId)) {
-			log.warn("WebSocket SUBSCRIBE: 타인의 알림 채널 구독 시도 - sessionUserId={}, targetUserId={}",
+			log.warn("WebSocket SUBSCRIBE 거부: 타인의 알림 채널 구독 시도 - sessionUserId={}, targetUserId={}",
 				sessionUserId, targetUserId);
-			throw new CustomException(ErrorCode.ACCESS_DENIED);
+			return false;
 		}
 
 		log.info("WebSocket 알림 구독 성공: userId={}", sessionUserId);
+		return true;
 	}
 
 	private Long getUserIdFromSession(StompHeaderAccessor accessor) {
