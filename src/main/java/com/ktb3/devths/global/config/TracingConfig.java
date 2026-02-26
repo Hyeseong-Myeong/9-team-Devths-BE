@@ -19,10 +19,17 @@ import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.aop.ObservedAspect;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.jdbc.datasource.JdbcTelemetry;
+import jakarta.annotation.PostConstruct;
+import reactor.core.publisher.Hooks;
 
 @Configuration
 @ConditionalOnEnabledTracing
 public class TracingConfig {
+
+	@PostConstruct
+	public void enableReactorContextPropagation() {
+		Hooks.enableAutomaticContextPropagation();
+	}
 
 	private static final List<String> EXCLUDED_PATHS = List.of(
 		"/actuator/**",
