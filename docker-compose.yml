@@ -31,6 +31,7 @@ services:
     restart: unless-stopped
     environment:
       - LOKI_URL=${LOKI_URL}
+      - ENV=${ENV}
     volumes:
       - ./promtail-config.yml:/etc/promtail/config.yml:ro
       - ${LOG_FILE_DIRECTORY}:/app/log:ro

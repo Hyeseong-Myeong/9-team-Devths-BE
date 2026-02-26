@@ -61,6 +61,10 @@ echo "> Spring Profile: $SPRING_PROFILE"
 
 echo "> Parameter Store 경로: $PARAM_PATH"
 
+# 환경 변수 설정 (Promtail 설정에 사용)
+export ENV="$SPRING_PROFILE"
+echo "> 환경(ENV): $ENV"
+
 # Parameter Store에서 파라미터 가져와서 임시 .env 파일 생성
 # --recursive: 하위 경로의 모든 파라미터 가져오기
 # --with-decryption: SecureString 타입 파라미터 복호화
