@@ -30,6 +30,7 @@ import com.ktb3.devths.global.storage.repository.S3AttachmentRepository;
 import com.ktb3.devths.global.storage.service.S3StorageService;
 import com.ktb3.devths.global.util.LogSanitizer;
 
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -48,6 +49,9 @@ public class AsyncAnalysisProcessor {
 	private final S3StorageService s3StorageService;
 	private final AnalysisEventPublisher analysisEventPublisher;
 
+	@Observed(name = "async.analysis",
+		contextualName = "async-analysis-processing",
+		lowCardinalityKeyValues = {"task.type", "document-analysis"})
 	@Async("taskExecutor")
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void handleAnalysisRequested(AnalysisRequestedEvent event) {
