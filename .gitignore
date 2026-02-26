@@ -15,6 +15,11 @@ application-local.yml
 CLAUDE.md
 .claude/
 AGENTS.md
+docker-compose-local.yml
+prometheus.yml
+tempo-config.yml
+grafana/
+tempo_data/
 
 ### STS ###
 .apt_generated

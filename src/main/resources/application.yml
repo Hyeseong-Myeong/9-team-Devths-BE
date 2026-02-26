@@ -122,9 +122,9 @@ chat:
 
 app:
   cache:
-    enabled: true
+    enabled: false
     post-detail:
-      enabled: true
+      enabled: false
       ttl: 60s
 
 ratelimit:
