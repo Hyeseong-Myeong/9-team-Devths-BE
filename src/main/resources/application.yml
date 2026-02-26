@@ -1,6 +1,6 @@
 spring:
   application:
-    name: devths-be
+    name: devths-be-${SPRING_PROFILES_ACTIVE:local}
 
   datasource:
     url: ${DB_URL_V2}
