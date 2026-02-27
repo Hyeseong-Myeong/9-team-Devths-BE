@@ -38,25 +38,19 @@
         <appender-ref ref="JSON_FILE"/>
     </appender>
 
-    <!-- Root Logger -->
-    <root level="INFO">
+    <!-- Root Logger - 불필요한 로그 줄이기 -->
+    <root level="WARN">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="ASYNC_JSON_FILE"/>
     </root>
 
     <!-- yml logging.level에서 주입받는 로거 레벨 -->
     <springProperty name="LOG_LEVEL_APP" source="logging.level.com.ktb3.devths"/>
-    <springProperty name="LOG_LEVEL_SPRING_WEB" source="logging.level.org.springframework.web"/>
-    <springProperty name="LOG_LEVEL_HIBERNATE_SQL" source="logging.level.org.hibernate.SQL"/>
-    <springProperty name="LOG_LEVEL_HIBERNATE_BINDER" source="logging.level.org.hibernate.type.descriptor.sql.BasicBinder"/>
-    <springProperty name="LOG_LEVEL_FASTAPI_CLIENT" source="logging.level.com.ktb3.devths.ai.client.FastApiClient"/>
-    <springProperty name="LOG_LEVEL_AI_CHAT_SERVICE" source="logging.level.com.ktb3.devths.ai.chatbot.service.AiChatMessageService"/>
 
     <!-- 애플리케이션 로거 레벨 설정 -->
     <logger name="com.ktb3.devths" level="${LOG_LEVEL_APP}"/>
-    <logger name="org.springframework.web" level="${LOG_LEVEL_SPRING_WEB}"/>
-    <logger name="org.hibernate.SQL" level="${LOG_LEVEL_HIBERNATE_SQL}"/>
-    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="${LOG_LEVEL_HIBERNATE_BINDER}"/>
-    <logger name="com.ktb3.devths.ai.client.FastApiClient" level="${LOG_LEVEL_FASTAPI_CLIENT}"/>
-    <logger name="com.ktb3.devths.ai.chatbot.service.AiChatMessageService" level="${LOG_LEVEL_AI_CHAT_SERVICE}"/>
+
+    <!-- Spring 프레임워크 로그 최소화 -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
 </configuration>
