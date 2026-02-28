@@ -36,7 +36,7 @@ public class ChatMessageController {
 		String chatSessionId = getOrCreateChatSessionId(headerAccessor, request.roomId());
 
 		Span receiveSpan = tracer.spanBuilder()
-			.name("chat.message.stomp.receive")
+			.name("ws chat.message.stomp.receive")
 			.kind(Span.Kind.SERVER)
 			.tag("messaging.system", "stomp")
 			.tag("messaging.destination", CHAT_MESSAGE_DESTINATION)
