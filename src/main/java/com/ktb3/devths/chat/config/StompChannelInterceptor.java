@@ -1,6 +1,8 @@
 package com.ktb3.devths.chat.config;
 
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -10,6 +12,7 @@ import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
 import com.ktb3.devths.chat.repository.ChatMemberRepository;
+import com.ktb3.devths.chat.tracing.ChatTraceConstants;
 import com.ktb3.devths.global.exception.CustomException;
 import com.ktb3.devths.global.response.ErrorCode;
 import com.ktb3.devths.global.security.jwt.JwtTokenProvider;
@@ -119,6 +122,8 @@ public class StompChannelInterceptor implements ChannelInterceptor {
 			return false;
 		}
 
+		assignChatSessionId(accessor, roomId);
+
 		log.info("WebSocket 구독 인증 성공: roomId={}, userId={}", roomId, userId);
 		return true;
 	}
@@ -161,5 +166,20 @@ public class StompChannelInterceptor implements ChannelInterceptor {
 		}
 
 		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	private void assignChatSessionId(StompHeaderAccessor accessor, Long roomId) {
+		Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+		if (sessionAttributes == null) {
+			return;
+		}
+
+		Map<Long, String> chatSessionIds = (Map<Long, String>)sessionAttributes.computeIfAbsent(
+			ChatTraceConstants.CHAT_SESSION_IDS_KEY,
+			key -> new ConcurrentHashMap<Long, String>()
+		);
+
+		chatSessionIds.computeIfAbsent(roomId, key -> UUID.randomUUID().toString());
 	}
 }

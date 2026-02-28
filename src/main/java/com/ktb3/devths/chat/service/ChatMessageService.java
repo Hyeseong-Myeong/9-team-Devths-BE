@@ -103,7 +103,7 @@ public class ChatMessageService {
 	}
 
 	@Transactional
-	public ChatMessageResponse sendMessage(Long senderId, ChatMessageRequest request) {
+	public ChatMessageResponse sendMessage(Long senderId, ChatMessageRequest request, String chatSessionId) {
 		ChatRoom chatRoom = chatRoomRepository.findByIdAndIsDeletedFalse(request.roomId())
 			.orElseThrow(() -> new CustomException(ErrorCode.CHATROOM_NOT_FOUND));
 
@@ -160,13 +160,13 @@ public class ChatMessageService {
 
 		ChatMessageResponse response = buildResponse(chatMessage, sender);
 
-		redisPublisher.publish(request.roomId(), response);
+		redisPublisher.publish(request.roomId(), response, chatSessionId);
 
 		ChatRoomNotification notification = new ChatRoomNotification(
 			request.roomId(), lastMessagePreview, chatMessage.getCreatedAt());
 		List<Long> memberUserIds = chatMemberRepository.findUserIdsByChatRoomId(request.roomId());
 		for (Long memberUserId : memberUserIds) {
-			redisPublisher.publishNotification(memberUserId, notification);
+			redisPublisher.publishNotification(memberUserId, notification, chatSessionId);
 		}
 
 		log.info("채팅 메시지 저장: roomId={}, senderId={}, type={}", request.roomId(), senderId, messageType);
