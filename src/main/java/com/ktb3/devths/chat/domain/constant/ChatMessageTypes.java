@@ -6,5 +6,6 @@ import lombok.Getter;
 public enum ChatMessageTypes {
 	TEXT,
 	IMAGE,
+	PDF,
 	SYSTEM;
 }

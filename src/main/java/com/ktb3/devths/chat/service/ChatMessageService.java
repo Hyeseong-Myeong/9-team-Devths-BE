@@ -140,7 +140,7 @@ public class ChatMessageService {
 			throw new CustomException(ErrorCode.INVALID_REQUEST);
 		}
 
-		String entityContent = (messageType == ChatMessageTypes.IMAGE)
+		String entityContent = (messageType == ChatMessageTypes.IMAGE || messageType == ChatMessageTypes.PDF)
 			? request.s3Key()
 			: request.content();
 
@@ -153,9 +153,11 @@ public class ChatMessageService {
 
 		chatMessageRepository.save(chatMessage);
 
-		String lastMessagePreview = (messageType == ChatMessageTypes.IMAGE)
-			? "[이미지]"
-			: request.content();
+		String lastMessagePreview = switch (messageType) {
+			case IMAGE -> "[이미지]";
+			case PDF -> "[PDF]";
+			default -> request.content();
+		};
 		chatRoom.updateLastMessage(lastMessagePreview, chatMessage.getCreatedAt());
 
 		ChatMessageResponse response = buildResponse(chatMessage, sender);
@@ -220,7 +222,7 @@ public class ChatMessageService {
 
 	private ChatMessageResponse buildHistoryResponse(ChatMessage message, Map<Long, String> profileImageMap) {
 		boolean isDeleted = message.isDeleted();
-		boolean isImage = message.getType() == ChatMessageTypes.IMAGE;
+		boolean hasS3Key = message.getType() == ChatMessageTypes.IMAGE || message.getType() == ChatMessageTypes.PDF;
 
 		ChatMessageResponse.Sender senderDto = null;
 		if (message.getSender() != null) {
@@ -229,17 +231,17 @@ public class ChatMessageService {
 			senderDto = new ChatMessageResponse.Sender(sender.getId(), sender.getNickname(), profileImage);
 		}
 
-		String content = isDeleted ? null : (isImage ? null : message.getContent());
-		String imageUrl = isDeleted ? null : (isImage ? s3StorageService.getPublicUrl(message.getContent()) : null);
+		String content = isDeleted ? null : (hasS3Key ? null : message.getContent());
+		String s3Url = isDeleted ? null : (hasS3Key ? s3StorageService.getPublicUrl(message.getContent()) : null);
 
 		return new ChatMessageResponse(
 			message.getId(), senderDto, message.getType().name(),
-			content, imageUrl, message.getCreatedAt(), isDeleted
+			content, s3Url, message.getCreatedAt(), isDeleted
 		);
 	}
 
 	private ChatMessageResponse buildResponse(ChatMessage message, User sender) {
-		boolean isImage = message.getType() == ChatMessageTypes.IMAGE;
+		boolean hasS3Key = message.getType() == ChatMessageTypes.IMAGE || message.getType() == ChatMessageTypes.PDF;
 
 		String profileImage = s3AttachmentRepository
 			.findTopByRefTypeAndRefIdAndIsDeletedFalseOrderByCreatedAtDesc(RefType.USER, sender.getId())
@@ -256,8 +258,8 @@ public class ChatMessageService {
 			message.getId(),
 			senderDto,
 			message.getType().name(),
-			isImage ? null : message.getContent(),
-			isImage ? s3StorageService.getPublicUrl(message.getContent()) : null,
+			hasS3Key ? null : message.getContent(),
+			hasS3Key ? s3StorageService.getPublicUrl(message.getContent()) : null,
 			message.getCreatedAt(),
 			false
 		);
