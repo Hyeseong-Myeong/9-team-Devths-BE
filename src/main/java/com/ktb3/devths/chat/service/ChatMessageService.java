@@ -47,6 +47,8 @@ public class ChatMessageService {
 
 	private static final int DEFAULT_PAGE_SIZE = 20;
 	private static final int MAX_PAGE_SIZE = 100;
+	private static final String DELETED_MESSAGE_PREVIEW = "삭제된 메시지입니다.";
+	private static final String DEFAULT_CHAT_SESSION_ID = "unknown";
 
 	private final ChatRoomRepository chatRoomRepository;
 	private final ChatPrivateRoomRepository chatPrivateRoomRepository;
@@ -178,7 +180,7 @@ public class ChatMessageService {
 
 	@Transactional
 	public void deleteMessage(Long userId, Long roomId, Long messageId) {
-		chatRoomRepository.findByIdAndIsDeletedFalse(roomId)
+		ChatRoom chatRoom = chatRoomRepository.findByIdAndIsDeletedFalse(roomId)
 			.orElseThrow(() -> new CustomException(ErrorCode.CHATROOM_NOT_FOUND));
 
 		chatMemberRepository.findByChatRoomIdAndUserId(roomId, userId)
@@ -192,7 +194,22 @@ public class ChatMessageService {
 			throw new CustomException(ErrorCode.CHAT_MESSAGE_ACCESS_DENIED);
 		}
 
+		boolean isLatestMessage = chatMessageRepository.findTopByChatRoomIdOrderByIdDesc(roomId)
+			.map(latestMessage -> latestMessage.getId().equals(messageId))
+			.orElse(false);
+
 		message.softDelete();
+
+		if (isLatestMessage) {
+			chatRoom.updateLastMessage(DELETED_MESSAGE_PREVIEW, message.getCreatedAt());
+
+			ChatRoomNotification notification = new ChatRoomNotification(
+				roomId, DELETED_MESSAGE_PREVIEW, message.getCreatedAt());
+			List<Long> memberUserIds = chatMemberRepository.findUserIdsByChatRoomId(roomId);
+			for (Long memberUserId : memberUserIds) {
+				redisPublisher.publishNotification(memberUserId, notification, DEFAULT_CHAT_SESSION_ID);
+			}
+		}
 
 		log.info("채팅 메시지 삭제: roomId={}, messageId={}", LogSanitizer.sanitize(String.valueOf(roomId)),
 			LogSanitizer.sanitize(String.valueOf(messageId)));
